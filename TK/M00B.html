@@ -1,0 +1,1309 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html dir="ltr">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=Shift_JIS">
+<meta http-equiv="imagetoolbar" content="no">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>Opaku's Train Kit : M00B(A00B) v4.62</title>
+<script language="JavaScript" type="text/javascript"><!--
+/*
+●Opaku's Train Kit M00B(A00B) ver4.62 (May 2016)
+A00B,M00Bの４種のプログラムを統合＋機能拡張。
+X02対応
+v4.62 May 2016/v4.6 Apr.2016/v4.5 Jun.2014/v4.4 Apr.2014/v4.3 Sep.2006/v4.23 Oct.2004/v4.22 Jun.2004/v421 Mar.2004/v4.2 Jan.2004/v4.11 Nov.2003/v4.0 Sep.2003/
+M00系履歴：
+v3.12 Mar.2003/v3.11 Feb.2003/v3.1 Dec.2002/v3.0 Aug.2002/
+v2.21a Jun.2002/v2.2-2.21 Jun 2002/v2.0-2.1 Apr.2002/v1.0 Mar.2002
+A00系履歴：
+v3.12 Mar.2003/v3.11 Feb.2003/v3.1 Dec.2002/v3.0 Aug.2002/
+v2.21a Jun.2002/v2.2-2.21 Jun 2002/v2.0-2.1 Apr.2002/v1.0 Jul.2001
+scripted by (C) 2001-2016 Mr.Opaku = Sonobe Souan.
+https://opaku.la.coocan.jp/zigzag/railway/
+●Trains Illustrated by (C) --おぱく堂様、月石星音--
+https://tsukiishi.web.fc2.com/
+
+*/
+//↓配列宣言等（ここは無視して次の「パラメータ設定」へ）----------
+trainLength=new Array();trainPicture=new Array();precountmax=20;trainspeedR=new Array();trainspeedL=new Array();toRight=new Array();glassOK=new Array();glassFile=new Array();glassOpacity=new Array();glassPngOK=new Array();glassPngFile=new Array();glassOffset=new Array();glassChoice=new Array();for(i=1;i<=precountmax;i++){trainPicture[i]=new Array();toRight[i]=false;glassOK[i]=false;glassPngOK[i]=false;glassOpacity[i]=0;glassOffset[i]=0;glassChoice[i]=0;};backgroundImgFile=new Array();foregroundImgFile=new Array();vistaImgFile=new Array();overTheBackgroundImgFile=new Array();
+
+
+//▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+//↓各種パラメータ設定
+
+//▼基本設定
+trainHeightPixel=60;//車輌画像の天地寸法（単位ピクセル）
+trainFolderName="traingif";//車両画像フォルダ名（初期値 "traingif"）
+
+/*
+【M00Bの編成について】
+・最大20編成。
+・gifとpngの混在も可能。
+*/
+
+//●第１編成
+trainLength[1]=213;//第１編成の長さ（単位ピクセル・画像左右寸法合計）
+//↓車輌画像ファイル指定
+trainPicture[1][1]="kitDC_kiha40_100.gif";//１号車の車輌画像ファイル名（左端が１号車なので注意・拡張子付）
+//↓最高速度
+trainspeedR[1]=80;//調速レバーを後退（右行）最大にした時の速度（単位km/h）
+trainspeedL[1]=80;//〃前進（左行）最大〃（自動走行時はこの速度で走る）
+//--------------------------------
+//▼以下、方向指定パラメータ追加可（走行パターン「自動走行＋編成毎方向指定」の場合）
+toRight[1]=true;//この編成を右行指定。
+//--------------------------------
+//▼以下、半透明窓パラメータ追加可。v4.1-
+//↓半透明窓の設定（CSS指定による半透明窓）
+glassOK[1]=false;
+glassFile[1]="～.gif";
+glassOpacity[1]=40;
+//↓半透明窓の設定（PNG-alpha channelによる半透明窓）
+glassPngOK[1]=false;
+glassPngFile[1]="～.png";
+//↓窓画像の使い分け。v4.4-
+glassChoice[1]=0;//半透明窓画像の選択（省略時=0）
+//半透明窓位置ずらし設定。
+glassOffset[1]=0;
+//--------------------------------
+
+//●第２編成
+trainLength[2]=400;//第２編成の長さ（単位ピクセル・画像左右寸法合計）
+//↓車輌画像ファイル指定
+trainPicture[2][1]="T_kiha49.png";//１号車（拡張子付）
+trainPicture[2][2]="T_kiha49.png";//２号車（サンプルは165系）
+//↓最高速度
+trainspeedR[2]=80;//調速レバーを後退（右行）最大にした時の速度（単位km/h）
+trainspeedL[2]=80;//〃前進（左行）最大〃
+//--------------------------------
+//方向指定パラメータ＋半透明窓パラメータ＋半透明窓ずらし設定パラメータ、追加可。
+//--------------------------------
+
+/*
+3編成以上（最大20編成）にする場合は、上記同様の編成指定をここに追加する。
+trainPicture[編成番号][号車]
+↑このような形式にすること。
+JavaScriptの配列は本来 0から始まるが、一般的には分かりにくいので 1から順にしてある。
+*/
+
+
+//▼走行の設定
+runoverpixels=100;//画面外走行距離＝画面内走行頻度を左右する（単位ピクセル／初期値 100／設定範囲 10-）
+automaticRun=false;//trueなら自動走行、falseなら手動走行。
+directionWhenAuto=2;//自動走行時の走行パターン（0=左行, 1=右行, 2=左右交互, 3=アクセス毎ランダム, 4=編成毎ランダム, 5=編成毎方向指定）
+//上記指定が、2と4の場合、最初の編成は左行に固定。
+presetSpeedRatio=80;//手動走行時の速度レバー初期設定（単位パーセント／初期値 80／設定可能数値、20,40,60,80,100のみ)
+
+//▼架線の設定。
+electrified=false;//電化＝架線の有無（true=あり、false=なし）
+wireImgFile="trolley_wire.gif";//架線画像ファイル名（拡張子付）
+pantographHeight=5.1;//パンタ高（単位 m・実車換算／初期値 5.1）
+poleOK=true;//架線柱の有無（true=あり、false=なし／但し奥側のみ）
+poleImgFile="pole_type1.gif";//架線柱画像（拡張子付）
+oldwire=false;//基本セットver2以前の架線＋架線柱画像を使う場合は trueにして架線柱画像を指定、ver3以後の架線と架線柱を分離した画像を使う時は false（旧バージョン互換用）
+
+//▼線路の設定。
+railOK=true;//レール画像の有無（true=あり、false=なし／背景画像中にレールも描いてしまった場合等はレール画像なしにする）
+railImgFile="rail_normal.gif";//レールの画像指定（拡張子付／画像高 9px固定）
+liftupPixel=0;//線路配置高（単位ピクセル）
+oldrail=false;//基本セットver2以前の線路画像（130px高）を使う場合は true（旧バージョン互換用）
+
+//▼踏切の設定
+crossingOK=true;//踏切表示（true=表示、false=非表示）
+crossingPos=460;//踏切位置（単位ピクセル／初期値 460／設定範囲 10～風景幅-50）
+crossingwidth=107;//踏切幅（単位ピクセル／初期値 107）踏切画像を描き変えて寸法が変わったらここを変更。
+crossFileOpenB="cross_M1002_B0.gif";//踏切開・奥の画像ファイル名（拡張子付）
+crossFileOpenF="cross_M1002_F0.gif";//〃・手前〃
+crossFileCloseB="cross_M1002_B1.gif";//踏切閉・奥〃
+crossFileCloseF="cross_M1002_F1.gif";//〃・手前〃
+
+//▼信号の設定
+signalOK=true;//信号表示（true=表示、false=非表示／背景付設定時のみ）
+signalRpos=420;//右行信号機座標（単位ピクセル／初期値 420／設定範囲 10～風景幅-50）
+signalLpos=1180;//左行信号機座標（単位ピクセル／初期値 1180／設定範囲 10～風景幅-50）
+signalwidth=8;//信号幅（単位ピクセル／初期値 8）信号画像を描き変えて寸法が変わったらここを変更。
+signalFileRightRed="signal1R_R.gif";//右行信号機・赤の画像ファイル名（拡張子付）
+signalFileRightGreen="signal1R_G.gif";//〃・緑〃
+signalFileLeftRed="signal1L_R.gif";//左行信号機・赤〃
+signalFileLeftGreen="signal1L_G.gif";//〃・緑〃
+
+//▼風景の基本設定
+sceneLeftMargin=0;//左側余白（単位ピクセル／初期値 0／設定範囲 0-100）
+sceneRightMargin=0;//右側余白（単位ピクセル／初期値 0／設定範囲 0-100）
+sceneHeightPixels=130;//風景高（初期値 130、設定範囲 60-500）
+//これにコントローラ部分高 36ピクセルを足した数値が、全体の高さとなる（自動運転設定時を除く）
+sceneWidthPixels=1600;//風景幅（初期値 1600、設定範囲 170-10000）
+
+//▼背景と前景の設定
+backgroundImgFile[0]="scene_A7002.gif";//背景画像ファイル名（拡張子付）
+backgroundImgFile[1]="scene_A7001.gif";//２つ以上指定すると背景切替を行う。
+//↑[ ]内は必ず連番。背景切替をしない場合は[0]のみに指定し、[1]以降の行頭に // を入れる。
+overTheBackgroundOK=true;//奥背景画像の有無（true=あり、false=なし）
+overTheBackgroundImgFile[0]="scene_M1001c.gif";//奥背景画像ファイル名（拡張子付）
+overTheBackgroundImgFile[1]="scene_M1001c.gif";//２つ以上指定すると奥背景切替を行う。
+vistaOK=true;//遠景画像の有無（true=あり、false=なし）
+vistaImgFile[0]="scene_M1001d.jpg";//遠景画像ファイル名（拡張子付）
+//vistaImgFile[1]="scene_M1001d.jpg";//２つ以上指定すると遠景切替を行う。
+//↑奥背景と遠景は三重スクロールを行わないのならなくてもよい。
+foregroundOK=true;//前景画像の有無（true=あり、false=なし）
+foregroundImgFile[0]="scene_AF_sakura.gif";//前景画像ファイル名（拡張子付）
+//foregroundImgFile[1]="scene_AF_fence.gif";//２つ以上指定すると前景切替を行う。
+bgChangePerTrain=2;//指定数値の列車走行毎に背景を切り替える。
+
+//▼背景三重スクロール設定
+sceneScroller=true;//三重スクロール設定の有無（true=あり、false=なし）
+scrollChangeCoordinateL=200;//三重スクロール切替位置・左行（単位ピクセル／初期値 200／設定範囲 50-400）
+scrollChangeCoordinateR=300;//〃・右行（単位ピクセル／初期値 300／設定範囲 50-400）
+overBackScrollRatio=0.3;//奥背景スクロール比率。0で奥背景スクロールなし、1で背景スクロールと一致（初期値 0.3）
+vistaScrollRatio=0.1;//遠景スクロール比率。0で遠景スクロールなし、1で背景スクロールと一致（初期値 0.1）
+
+//▼操作盤の設定
+controlerBack=true;//操作盤背景色の有無
+controlerBackColor="#222222";//操作盤背景色（RGB指定／初期値 "#222222"）
+
+//▼特種表現（Windows版IE6-IE9）
+blurEffect=false;//スピードに合わせて「ぶれ」を表現するならtrue、しないならfalse。
+blurRatio=0.5;//「ぶれ」の程度（初期値0.5。範囲 0.1～。数値が大きいほど「ぶれ」も大きくなる）
+
+//▼その他の設定
+zeroTopMargin=false;//鉄道走行場面を強制的に画面最上部に表示するならtrue。
+loadingBlack=true;//読込中表示の黒背景（WindowsIE9以前は黒グラデーション）ありならtrue、なしならfalse。
+loadingIndicator=true;//読込中の点滅ライトの有無（true=表示、false=非表示）
+keyControlOK=true;//キー操作（true=有効、false=無効）
+//↑F=レバーを左へ, GとH=停止, J=レバーを右へ
+textUnderTheRail=true;//走行シーンの下に文章や画像や広告が存在しない場合、ここをfalseにすることでシーンと文章等の重なりを防ぐためのスペーサー（無駄な空白）の表示を停止する。
+loadedToFocus=true;//読込完了と同時に走行シーンウィンドウを前面に出すならtrue、何も処理をしないならfalse。
+
+
+//↑パラメータ設定ここまで
+//▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+
+
+
+//BasicFunction------------------------------------------
+nn4=false;nn6=false;ie=false;
+if(document.all){ie=true;
+}else{if(document.getElementById){nn6=true;
+}else{if(document.layers){nn4=true;
+}}}
+isMac=navigator.userAgent.toUpperCase().indexOf('MAC')!=-1;
+isWin=navigator.userAgent.toUpperCase().indexOf('WIN')!=-1;
+ie4=navigator.userAgent.toUpperCase().indexOf('MSIE 4')!=-1;
+ie5b=navigator.userAgent.toUpperCase().indexOf('MSIE 5')!=-1;
+isOpera=navigator.userAgent.toUpperCase().indexOf('OPERA')!=-1;
+ie6=ie&&(!ie4)&&(!ie5b)&&(!isOpera);
+ie5=ie&&(!ie4)&&(!isOpera);
+ie6b=navigator.userAgent.toUpperCase().indexOf('MSIE 6')!=-1;
+ie7b=navigator.userAgent.toUpperCase().indexOf('MSIE 7')!=-1;
+ie8b=navigator.userAgent.toUpperCase().indexOf('MSIE 8')!=-1;
+ie9b=navigator.userAgent.toUpperCase().indexOf('MSIE 9')!=-1;
+isIE7=ie&&!ie4&&!ie5b&&!ie6b;
+isIE9=isIE7&&!ie7b&&!ie8b;
+isIE10=isIE9&&!ie9b;
+if(isIE10){ie=false;nn6=true;}
+dhtmlOK=false;
+if(nn4||nn6||ie){dhtmlOK=true}
+function layerShow(objid){
+	if(nn4){document.layers['tetsudou'].document.layers[objid].visibility="show"};
+	if(nn6){document.getElementById(objid).style.visibility="visible"};
+	if(ie){document.all(objid).style.visibility="visible"};
+}
+function layerHide(objid){
+	if(nn4){document.layers['tetsudou'].document.layers[objid].visibility="hide"};
+	if(nn6){document.getElementById(objid).style.visibility="hidden"};
+	if(ie){document.all(objid).style.visibility="hidden"};
+}
+function layerMoveX(objid,xpos){
+	if(nn4){document.layers['tetsudou'].document.layers[objid].left=xpos};
+	if(nn6){document.getElementById(objid).style.left=xpos};
+	if(ie){document.all(objid).style.pixelLeft=xpos};
+}
+function layerMoveY(objid,ypos){
+	if(nn4){document.layers['tetsudou'].document.layers[objid].top=ypos};
+	if(nn6){document.getElementById(objid).style.top=ypos};
+	if(ie){document.all(objid).style.pixelTop=ypos};
+}
+function sceneMoveX(xpos){
+	if(nn4){document.layers['tetsudou'].left=xpos};
+	if(nn6){document.getElementById('tetsudou').style.left=xpos};
+	if(ie){document.all('tetsudou').style.pixelLeft=xpos};
+}
+function sceneMoveY(ypos){
+	if(nn4){document.layers['tetsudou'].top=ypos};
+	if(nn6){document.getElementById('tetsudou').style.top=ypos};
+	if(ie){document.all('tetsudou').style.pixelTop=ypos};
+}
+function layerBgColor(objid,color){
+	if(nn4){document.layers['tetsudou'].document.layers[objid].bgColor=color};
+	if(nn6){document.getElementById(objid).style.backgroundColor=color};
+	if(ie){document.all(objid).style.backgroundColor=color};
+}
+function layerChange(objid,newHtml){
+	if(ie){document.all(objid).innerHTML=newHtml}
+	if(nn4){
+		document.layers['tetsudou'].document.layers[objid].document.open();
+		document.write(newHtml);
+		document.layers['tetsudou'].document.layers[objid].document.close();}
+	if(nn6){document.getElementById(objid).innerHTML=newHtml}
+}
+function imgChange(imgName,imgFile,layerName){
+	if(nn4){document.layers['tetsudou'].document.layers[layerName].document.images[imgName].src=imgFile};
+	if(nn6){document.getElementById(imgName).src=imgFile};
+	if(ie){document.images[imgName].src=imgFile}
+}
+function widthCheck(){//v4
+	if(nn4||nn6){windowwidthpx=window.innerWidth-sceneLeftMargin-sceneRightMargin};
+	if(ie){windowwidthpx=document.body.clientWidth-sceneLeftMargin-sceneRightMargin};
+}
+function heightCheck(){
+	if(nn4||nn6){windowheightpx=window.innerHeight};
+	if(ie){windowheightpx=document.body.clientHeight};
+}
+function yscrollCheck(){
+	if(nn4||nn6){yyy=window.pageYOffset};
+	//if(nn6){yyy=window.scrollY};
+	if(ie){yyy=document.body.scrollTop};
+}
+//Check-----------------------------------------
+scrollspoil=false;
+zeroscroll=false;
+if(location.search=="?ruler"){
+	foregroundOK=true;
+	for(i=0;i<foregroundImgFile.length;i++){foregroundImgFile[i]="sceneRuler.gif";}
+	scrollspoil=false;
+};
+backgroundOK=true;
+if(sceneHeightPixels<60){sceneHeightPixels=60;alert('sceneHeightPixels is out of range!')}
+if(sceneHeightPixels>500){sceneHeightPixels=500;alert('sceneHeightPixels is out of range!')}
+if(sceneWidthPixels<170){sceneWidthPixels=170;alert('sceneWidthPixels is out of range!')}
+if(sceneWidthPixels>10000){sceneWidthPixels=10000;alert('sceneWidthPixels is out of range!')}
+trainScale=100;
+invisiblePicture="dum.gif";
+railHeight=9;
+if(trainFolderName.lastIndexOf("/")!=trainFolderName.length-1&&(trainFolderName!="")){trainFolderName+="/"};
+sceneFolderName="scenegif/";
+controlFolderName="controlgif/";
+if(location.search=="?auto"){automaticRun=true}
+sceneAreaHeight=sceneHeightPixels;
+sceneAllHeight=sceneAreaHeight+36;
+if(railOK==false){railHeight=0}
+if(liftupPixel<0){liftupPixel=0}
+liftupPixel+=railHeight;
+if(automaticRun){sceneAllHeight=sceneAreaHeight}
+howmanytrains=0;
+for(i=1;i<=precountmax;i++){
+	checkTrainsNum=trainPicture[i].length;
+	if(checkTrainsNum>1){
+		howmanytrains++;
+	}else{
+		break;
+	}
+}
+if(howmanytrains<=0){alert('No Trains!')}
+X02now=false;
+if(location.search=="?setX02"&&self.name=="X02frame1"&&top.frames.length!=0){X02now=true}
+if(X02now){
+	howmanytrains=1;
+	zeroTopMargin=true;
+	parent.X02OK=true;
+	foregroundOK=false;
+	automaticRun=false;
+	sceneHeightPixels=130;
+	sceneWidthPixels=1600;
+	sceneScroller=false;
+	sceneRightMargin=0;
+	sceneLeftMargin=0;
+	crossingOK=false;
+	signalOK=false;
+	railOK=true;
+	railHeight=9;
+}
+trainsMax=20;
+if(howmanytrains>trainsMax){howmanytrains=trainsMax}
+windowwidthpx=sceneWidthPixels;
+windowheightpx=sceneAllHeight;
+if(runoverpixels<10){runoverpixels=10}
+runOverPx=Math.round(runoverpixels/2);
+leftlimit=new Array();
+glassShow=false;
+for(i=1;i<=howmanytrains;i++){
+	leftlimit[i]=-trainLength[i]-runOverPx-2;
+	if(nn4){
+		glassOK[i]=false;glassPngOK[i]=false;
+	}else if(glassChoice[i]==0){
+		if(ie&&isWin&&!isIE10&&!isOpera){glassPngOK[i]=false}else{glassOK[i]=false;}
+	}else if(glassChoice[i]==2){
+		if(ie4||ie5b||ie6b){glassPngOK[i]=false;}else{glassOK[i]=false;}
+	}else if(glassChoice[i]==1){
+		if(isMac&&ie){glassOK[i]=false;}else{glassPngOK[i]=false;}
+	}
+	if(glassOK[i]||glassPngOK[i]){glassShow=true}
+}
+rightlimit=windowwidthpx+runOverPx;
+scaleRatio=(trainScale/100);
+goOK=true;
+trainposbase=0;trainpos=0;
+yyy=0;
+onTheWeb=false;if(location.protocol=="http:"){onTheWeb=true}
+pantographheightpx=Math.round(pantographHeight*10);
+if(self.name=="trainRun"){zeroTopMargin=true}
+if(vistaScrollRatio<0){vistaScrollRatio=0}
+if(vistaScrollRatio>1){vistaScrollRatio=1}
+if(overBackScrollRatio<0){overBackScrollRatio=0}
+if(overBackScrollRatio>1){overBackScrollRatio=1}
+if(sceneLeftMargin<0){sceneLeftMargin=0};if(sceneLeftMargin>100){sceneLeftMargin=100}
+if(sceneRightMargin<0){sceneRightMargin=0};if(sceneRightMargin>100){sceneRightMargin=100}
+if(scrollChangeCoordinateL<50){scrollChangeCoordinateL=50}
+if(scrollChangeCoordinateL>400){scrollChangeCoordinateL=400}
+if(scrollChangeCoordinateR<50){scrollChangeCoordinateR=50}
+if(scrollChangeCoordinateR>400){scrollChangeCoordinateR=400}
+speedratio=-0.6;if(X02now){speedratio=0}
+if(presetSpeedRatio%20==0&&presetSpeedRatio>=20&&X02now==false){
+	speedratio=-(presetSpeedRatio/100);
+}else if(X02now==false&&automaticRun==false){
+	alert('presetSpeedRatioの設定値が正しくありません。');
+}
+if(directionWhenAuto==3){
+	dirshuffle=Math.random()*10;
+	if(dirshuffle>5){directionWhenAuto=0}else{directionWhenAuto=1}
+}
+directionNow=0;//0L 1R-M00
+if(automaticRun){speedratio=-1}else{directionWhenAuto=0}
+if(automaticRun&&directionWhenAuto==1){speedratio=1;directionNow=1}
+if(automaticRun&&directionWhenAuto==5&&toRight[1]){speedratio=1;directionNow=1}
+if(automaticRun&&directionNow==1){realspeed=(trainspeedR[1]/3.6/scaleRatio);}else{realspeed=(trainspeedL[1]/3.6/scaleRatio);}
+if(crossingPos<10){crossingPos=10}
+if(crossingPos>sceneWidthPixels-50){crossingPos=sceneWidthPixels-50}
+if(signalRpos<10){signalRpos=10}
+if(signalRpos>sceneWidthPixels-50){signalRpos=sceneWidthPixels-50}
+if(signalLpos<10){signalLpos=10}
+if(signalLpos>sceneWidthPixels-50){signalLpos=sceneWidthPixels-50}
+if(location.search=="?blur"){blurEffect=true}
+if(blurRatio<0.1){blurEffect=false};if(blurRatio>2){blurRatio=2}
+if(!(ie6&&isWin)||isIE10){blurEffect=false}
+//MakingTrains-------------------------------------------
+trainTagStart="<nobr>";
+trainTagMid1="<img src='"+trainFolderName;
+trainTagMid2a="'>";
+trainTagMid2b="' style='filter:Chroma(color=#000000)'>";
+trainTagMid=trainTagMid2a;
+trainTagEnd="<"+"/nobr>";
+trainTags=new Array('','','','','','','','','','','','','','','','','','','','','','');
+carsImg=new Array('','','','','','','','','','','','','','','','','','','','','','');
+glassTag=new Array('','','','','','','','','','','','','','','','','','','','','','');
+sfxNum=new Array();sfx=new Array();
+for(m=1;m<=howmanytrains;m++){
+	sfxNum[m]=new Array();sfx[m]=new Array();
+	for(i=1;i<trainPicture[m].length;i++){
+		sfxNum[m][i]=trainPicture[m][i].length;
+		sfx[m][i]=trainPicture[m][i].substr(sfxNum[m][i]-3,3);
+		if((sfx[m][i]=="bmp"||sfx[m][i]=="BMP")&&ie&&isWin){trainTagMid2=trainTagMid2b}else{trainTagMid2=trainTagMid2a}
+		carsImg[m]+=trainTagMid1+trainPicture[m][i]+trainTagMid2;
+	}
+	trainTags[m]=trainTagStart+carsImg[m]+trainTagEnd;
+	if(glassPngOK[m]){glassOK[m]=true;glassFile[m]=glassPngFile[m];glassOpacity[m]=100;}
+	if(glassOK[m]){
+		if(glassOpacity[m]>0&&glassOpacity[m]<100){
+			if(isIE10||nn6){
+				glassTag[m]="<img src='"+trainFolderName+glassFile[m]+"' style='opacity:"+(glassOpacity[m]/100)+"'>";
+			}else{
+				glassTag[m]="<img src='"+trainFolderName+glassFile[m]+"' style='filter:Alpha(opacity="+glassOpacity[m]+")'>";
+			}
+		}else{
+			glassTag[m]="<img src='"+trainFolderName+glassFile[m]+"'>";
+		}
+	}
+}
+if(X02now){trainTags[1]="";glassShow=false;glassOK[1]=false;}
+glassDiv="<div id='mado' style='position:absolute;left:0px;top:0px;visibility:hidden'>"+glassTag[1]+"<"+"/div>";
+//OhterTags--------------------------------------
+hashiraTagStart="<table border=0 cellpadding=0 cellspacing=0 background='";
+hashiraTagMid="'><tr><td><img src='"+controlFolderName+invisiblePicture+"' width='"+sceneWidthPixels+"' height=";
+hashiraTagEnd="><"+"/td><"+"/tr><"+"/table>";
+hashiraTag=hashiraTagStart+sceneFolderName+poleImgFile+hashiraTagMid+"130"+hashiraTagEnd;
+kasenTag=hashiraTagStart+sceneFolderName+wireImgFile+hashiraTagMid+"50"+hashiraTagEnd;
+railTag=hashiraTagStart+sceneFolderName+railImgFile+hashiraTagMid+railHeight+hashiraTagEnd;
+if(oldrail){railTag=hashiraTagStart+sceneFolderName+railImgFile+hashiraTagMid+"130"+hashiraTagEnd;}
+bgTag="<img src='"+sceneFolderName+backgroundImgFile[0]+"' name='haikeiga' id='haikeiga'>";
+bbgTag="<img src='"+sceneFolderName+overTheBackgroundImgFile[0]+"' name='okuhaikeiga' id='okuhaikeiga'>";
+vtTag="<img src='"+sceneFolderName+vistaImgFile[0]+"' name='enkeiga' id='enkeiga'>";
+fgTag="<img src='"+sceneFolderName+foregroundImgFile[0]+"' name='zenkeiga' id='zenkeiga'>";
+barN="M";
+controlerbaseTags="<img src='"+controlFolderName+barN+"00ctrl_base.gif' width=127 height=16>";
+controlerRTags="<img src='"+controlFolderName+barN+"00ctrl_R.gif' width=127 height=16>";
+controlerLTags="<img src='"+controlFolderName+barN+"00ctrl_L.gif' width=127 height=16>";
+controlerbtnTags="<img src='"+controlFolderName+barN+"00ctrl_btn.gif' width=5 height=16>";
+protectorTags="<img src='"+controlFolderName+invisiblePicture+"' width="+sceneWidthPixels+" height="+sceneAllHeight+">";
+startBlackTag="<div id='startblack' style='position:absolute;left:0px;top:0px;visibility:visible;width:1600;height:"+sceneAllHeight+";clip:rect(0px,"+sceneWidthPixels+"px,"+sceneAllHeight+"px,0px);background-color:#000000;filter:Alpha(opacity=0,finishOpacity=60,style=1,startX=40,finishX=0,startY=0,finishY=0)'><br><"+"/div>";
+controlerbarTags="<img src='"+controlFolderName+invisiblePicture+"' width=127 height=16>";
+crossBTag="<img src='"+sceneFolderName+crossFileCloseB+"' height=130 width="+crossingwidth+" name='fumikiriBimg' id='fumikiriBimg'>";
+crossFTag="<img src='"+sceneFolderName+crossFileCloseF+"' height=130 width="+crossingwidth+" name='fumikiriFimg' id='fumikiriFimg'>";
+signalRTag="<img src='"+sceneFolderName+signalFileRightRed+"' name='shingoRimg' id='shingoRimg'>";
+signalLTag="<img src='"+sceneFolderName+signalFileLeftGreen+"' name='shingoLimg' id='shingoLimg'>";
+if(directionNow==1){
+	signalRTag="<img src='"+sceneFolderName+signalFileRightGreen+"' name='shingoRimg' id='shingoRimg'>";
+	signalLTag="<img src='"+sceneFolderName+signalFileLeftRed+"' name='shingoLimg' id='shingoLimg'>";
+}
+//Preload-------------------------------------------
+if(dhtmlOK){
+	dumdum=new Image();dumdum.src=controlFolderName+invisiblePicture;
+	carsImages=new Array();madomado=new Array();
+	if(X02now==false){
+		for(m=1;m<=howmanytrains;m++){
+			if(glassOK[m]){madomado[m]=new Image();madomado[m].src=trainFolderName+glassFile[m];}
+			carsImages[m]=new Array();
+			for(i=1;i<trainPicture[m].length;i++){
+				carsImages[m][i]=new Image();
+				carsImages[m][i].src=trainFolderName+trainPicture[m][i];
+			}
+		}
+	}
+	if(backgroundOK){
+		bgImage=new Array();
+		for(i=0;i<backgroundImgFile.length;i++){bgImage[i]=new Image();bgImage[i].src=sceneFolderName+backgroundImgFile[i];}
+	}
+	if(overTheBackgroundOK){
+		bbgImage=new Array();
+		for(i=0;i<overTheBackgroundImgFile.length;i++){bbgImage[i]=new Image();bbgImage[i].src=sceneFolderName+overTheBackgroundImgFile[i];}
+	}
+	if(foregroundOK){
+		fgImage=new Array();
+		for(i=0;i<foregroundImgFile.length;i++){fgImage[i]=new Image();fgImage[i].src=sceneFolderName+foregroundImgFile[i];}
+	}
+	if(vistaOK){
+		vgImage=new Array();
+		for(i=0;i<vistaImgFile.length;i++){vgImage[i]=new Image();vgImage[i].src=sceneFolderName+vistaImgFile[i];}
+	}
+	if(automaticRun==false){
+		controlerImages=new Array();
+		controlerImages[0]=new Image();controlerImages[0].src=controlFolderName+"M"+barN+"00ctrl_base.gif";
+		controlerImages[1]=new Image();controlerImages[1].src=controlFolderName+"M"+barN+"00ctrl_btn.gif";
+		controlerImages[2]=new Image();controlerImages[2].src=controlFolderName+"M"+barN+"00ctrl_R.gif";
+		controlerImages[3]=new Image();controlerImages[3].src=controlFolderName+"M"+barN+"00ctrl_L.gif";
+	}
+	if(railOK){railImage=new Image();railImage.src=sceneFolderName+railImgFile;}
+	if(electrified){
+		if(poleOK){hashiraImage=new Image();hashiraImage.src=sceneFolderName+poleImgFile};
+		if(oldwire==false){kasenImage=new Image();kasenImage.src=sceneFolderName+wireImgFile};
+	}
+	if(crossingOK){
+		crossImgB0=new Image();crossImgB0.src=sceneFolderName+crossFileOpenB;
+		crossImgB1=new Image();crossImgB1.src=sceneFolderName+crossFileCloseB;
+		crossImgF0=new Image();crossImgF0.src=sceneFolderName+crossFileOpenF;
+		crossImgF1=new Image();crossImgF1.src=sceneFolderName+crossFileCloseF;
+	}
+	if(signalOK){
+		signalImgR0=new Image();signalImgR0.src=sceneFolderName+signalFileRightRed;
+		signalImgR1=new Image();signalImgR1.src=sceneFolderName+signalFileRightGreen;
+		signalImgL0=new Image();signalImgL0.src=sceneFolderName+signalFileLeftRed;
+		signalImgL1=new Image();signalImgL1.src=sceneFolderName+signalFileLeftGreen;
+	}
+}
+//LoadingIndicator-------------------------------------------------
+loadingRed=true;loadingRedCount=0;;
+function loadingLight(){
+	if(loadingRed){
+		if(loadingRedCount>3){layerBgColor('loading','#ff0000');}else{layerBgColor('loading','#222222');}
+		loadingRedCount++;
+		if(loadingRedCount>7){loadingRedCount=0};
+		setTimeout('loadingLight()',140);
+	}else{
+		layerBgColor('loading','#00dd99');
+	}
+}
+//X02------------------------------------------
+function trainX02set1(){if(X02now){
+	trainX02dataNow=parent.trainX02data;
+	layerChange('densha',trainX02dataNow);
+	trainposbase=100;
+}}
+function trainX02set2(){if(X02now){
+	TKheight=parent.trainX02height;
+	TKwidth=parent.trainX02width;
+	layerMoveY('densha',sceneHeightPixels-TKheight-liftupPixel);
+	leftlimit[1]=-TKwidth-runOverPx-2;
+}}
+//Clip---------------------------------------------------
+function overflowHideZM(){
+	sceneShowAllPixels=windowwidthpx;
+	if(windowwidthpx>sceneWidthPixels){sceneShowAllPixels=sceneWidthPixels}
+	if(nn4){
+		document.layers['tetsudou'].clip.height=sceneAllHeight;
+		document.layers['tetsudou'].clip.width=sceneShowAllPixels;
+	}
+	if(nn6){document.getElementById('tetsudou').style.clip="rect(0px,"+sceneShowAllPixels+"px,"+sceneAllHeight+"px,0px)";}
+	if(ie){
+		document.all('tetsudou').style.width=sceneShowAllPixels;
+		document.all('tetsudou').style.height=sceneAllHeight;
+		document.all('tetsudou').style.overflow="hidden";
+	}
+}
+//Preset-------------------------------------------
+whoamI="M00B";if(automaticRun){whoamI="A00B"};
+rightsmes="Opaku\'s Train Kit".fontcolor('#9999ff')+"<font color='#99999f'> "+whoamI+" ver4.62<"+"/font>";
+if(X02now){rightsmes="Opaku\'s Train Kit".fontcolor('#9999ff')+" X02".fontcolor('#99999f');}
+localdelay=2000;if(onTheWeb){localdelay=10}
+function preset(){if(dhtmlOK){
+	setTimeout('preset2()',localdelay);
+}}
+function preset2(){
+	loadingRed=false;
+	layerChange('now',rightsmes);
+	setTimeout('inframepreset()',1200);
+};
+function inframepreset(){
+	if(goOK){
+		heightCheck();
+		scenecut=windowheightpx-sceneAllHeight;
+		if(scenecut<=10){
+			if(scenecut>0){scenecut=0}
+			sceneMoveY(scenecut);
+		}
+		if(nn4){presetLayer()}else{mousepreset();presetdelay()};
+	}
+}
+sceneScrollingPx=0;
+function setRightlimitDelay(){setTimeout('setRightlimit()',500);}
+function setRightlimit(){
+	widthCheck();
+	if(windowwidthpx<1){windowwidthpx=1}
+	if(automaticRun==false&&windowwidthpx<170){windowwidthpx=170}
+	overflowHideZM();
+	rightlimit=windowwidthpx+runOverPx;
+	sceneScrollingPx=windowwidthpx-sceneWidthPixels;
+	if(windowwidthpx>sceneWidthPixels){
+		rightlimit=sceneWidthPixels+runOverPx;
+		sceneScrollingPx=0;
+	};
+	if(sceneScrollingPx>0){sceneScrollingPx=0}
+}
+function presetLayer(){if(nn4){
+	layerChange('densha',trainTags[1]);
+	if(backgroundOK){layerChange('haikei',bgTag)};
+	if(overTheBackgroundOK){layerChange('haikeioku',bbgTag)};
+	if(vistaOK){layerChange('enkei',vtTag)};
+	if(foregroundOK){layerChange('zenkei',fgTag)}
+	if(crossingOK){
+		layerChange('fumikiriB',crossBTag);
+		layerChange('fumikiriF',crossFTag);
+	}
+	if(signalOK){
+		layerChange('shingoR',signalRTag);
+		layerChange('shingoL',signalLTag);
+	}
+	if(railOK){layerChange('senro',railTag);}
+	if(electrified){
+		if(poleOK){layerChange('hashira',hashiraTag)};
+		if(oldwire==false){layerChange('kasen',kasenTag)};
+	};
+	if(automaticRun==false){
+		layerChange('controlerbase',controlerbaseTags);
+		layerChange('controlerL',controlerLTags);
+		layerChange('controlerR',controlerRTags);
+		layerChange('controlerbutton',controlerbtnTags);
+		layerChange('controlerbar',controlerbarTags);
+	}
+	layerChange('protector',protectorTags);
+	document.layers['tetsudou'].clip.height=sceneAllHeight;
+	setTimeout('nn4delay()',500);
+	
+}}
+function nn4delay(){//Netscape 4 bug fix
+	mousepreset();presetdelay();
+}
+function presetdelay(){
+	if(keyControlOK){setKeyControl()}
+	setRightlimit();
+	window.onresize=setRightlimitDelay;
+	if(X02now){
+		layerMoveX('controlerbutton',81);
+	}else{
+		buttonPresetX=76+(speedratio*50);
+		layerMoveX('controlerbutton',buttonPresetX);
+	}
+	if(automaticRun&&directionWhenAuto==1){
+		trainposbase=leftlimit[trainNow];
+	}else if(automaticRun&&directionWhenAuto==5&&toRight[trainNow]){
+		trainposbase=leftlimit[trainNow];
+	}else{
+		trainposbase=rightlimit;
+	}
+	layerMoveX('densha',trainposbase);
+	if(glassShow){layerMoveX('mado',trainposbase+glassOffset[trainNow]);}
+	if(blurEffect){
+		document.all('haikei').filters['blur'].enabled=false;
+		document.all('senro').filters['blur'].enabled=false;
+		document.all('zenkei').filters['blur'].enabled=false;
+		document.all('hashira').filters['blur'].enabled=false;
+		document.all('kasen').filters['blur'].enabled=false;
+		document.all('densha').filters['blur'].enabled=false;
+		document.all('shingoL').filters['blur'].enabled=false;
+		document.all('shingoR').filters['blur'].enabled=false;
+		document.all('fumikiriB').filters['blur'].enabled=false;
+		document.all('fumikiriF').filters['blur'].enabled=false;
+	}
+	sceneMoveX(sceneLeftMargin);
+	if(sceneScroller&&directionNow==0){
+		sceneposbase=sceneScrollingPx;
+		vistapos=Math.round(sceneScrollingPx*vistaScrollRatio);
+		if(vistaOK){layerMoveX('enkei',vistapos);}
+		bbgpos=Math.round(sceneScrollingPx*overBackScrollRatio);
+		if(overTheBackgroundOK){layerMoveX('haikeioku',bbgpos)};
+		layerMoveX('haikei',sceneScrollingPx);
+		layerMoveX('zenkei',sceneScrollingPx);
+		layerMoveX('senro',sceneScrollingPx);
+		layerMoveX('kasen',sceneScrollingPx);
+		layerMoveX('hashira',sceneScrollingPx);
+		layerMoveX('fumikiriB',sceneScrollingPx+crossingPos);
+		layerMoveX('fumikiriF',sceneScrollingPx+crossingPos);
+		layerMoveX('shingoR',sceneScrollingPx+signalRpos);
+		layerMoveX('shingoL',sceneScrollingPx+signalLpos);
+	}else{
+		layerMoveX('fumikiriB',crossingPos);
+		layerMoveX('fumikiriF',crossingPos);
+		layerMoveX('shingoR',signalRpos);
+		layerMoveX('shingoL',signalLpos);
+	}
+	layerMoveY('densha',sceneAreaHeight-trainHeightPixel-liftupPixel);
+	if(glassShow){layerMoveY('mado',sceneAreaHeight-trainHeightPixel-liftupPixel);}
+	layerHide('now');layerShow('densha');
+	if(glassOK[1]){layerShow('mado');}
+	layerShow('protector');
+	layerMoveY('controlerbase',sceneAreaHeight+8);
+	layerMoveY('controlerL',sceneAreaHeight+8);
+	layerMoveY('controlerR',sceneAreaHeight+8);
+	layerMoveY('controlerbutton',sceneAreaHeight+8);
+	layerMoveY('controlerbar',sceneAreaHeight+8);
+	if(automaticRun==false){
+		layerShow('controlerbase');layerShow('controlerL');layerShow('controlerbutton');
+		layerShow('controlerbar');
+	}
+	if(crossingOK){
+		fumikiriHeightOffset=sceneAreaHeight-121-liftupPixel;
+		layerMoveY('fumikiriB',fumikiriHeightOffset);
+		layerMoveY('fumikiriF',fumikiriHeightOffset);
+		layerShow('fumikiriB');
+		layerShow('fumikiriF');
+	}
+	if(signalOK){
+		shingoHeightOffset=sceneAreaHeight-121-liftupPixel;
+		layerMoveY('shingoR',shingoHeightOffset);
+		layerMoveY('shingoL',shingoHeightOffset);
+		layerShow('shingoR');
+		layerShow('shingoL');
+	}
+	if(electrified){
+		if(poleOK){
+			layerMoveY('hashira',sceneAreaHeight-121-liftupPixel);
+			layerShow('hashira');
+		}
+		kasenHeightOffset=sceneAreaHeight-50-pantographheightpx-liftupPixel;
+		layerMoveY('kasen',kasenHeightOffset);
+		if(oldwire==false){layerShow('kasen')};
+	};
+	if(railOK){
+		if(oldrail){
+			layerMoveY('senro',sceneAreaHeight-130-(liftupPixel-railHeight));
+		}else{
+			layerMoveY('senro',sceneAreaHeight-liftupPixel);
+		}
+		layerShow('senro')
+	}
+	if(backgroundOK){layerShow('haikei')};
+	if(overTheBackgroundOK){layerShow('haikeioku')};
+	if(vistaOK){layerShow('enkei')};
+	if(foregroundOK){layerShow('zenkei');}
+	layerMoveY('ctrlback',sceneAreaHeight);
+	if(controlerBack&&automaticRun==false){layerBgColor('ctrlback',controlerBackColor)};
+	if(!nn4&&loadingBlack){
+		layerHide('startblack');
+		if(ie6&&isWin){document.all('startblack').filters['alpha'].enabled=false;}
+	};
+	layerHide('loading');
+	if(top.frames.length==0&&textUnderTheRail==false&&loadedToFocus){self.focus()}
+	setTimeout('trainControl()',2000);
+}
+//Crossing--------------------------------------
+fumikiriOn=true;fumikiriOnFlag=true;
+crossLeftPos=crossingPos;crossRightPos=crossingPos+crossingwidth;
+function crossControl(){if(crossingOK){
+	if(speedratio<0){//←
+		if(trainRightPos<crossLeftPos){
+			fumikiriOnFlag=false;
+		}else{
+			fumikiriOnFlag=true;
+		}
+		crossMove();
+	}
+	if(speedratio>0){//→
+		if(checkpos>crossRightPos){
+			fumikiriOnFlag=false;
+		}else{
+			fumikiriOnFlag=true;
+		}
+		crossMove();
+	}
+}}
+function crossMove(){if(crossingOK){
+	if(fumikiriOn!=fumikiriOnFlag){
+		if(fumikiriOnFlag==true){
+			imgChange('fumikiriBimg',crossImgB1.src,'fumikiriB');
+			imgChange('fumikiriFimg',crossImgF1.src,'fumikiriF');
+		}else{
+			imgChange('fumikiriBimg',crossImgB0.src,'fumikiriB');
+			imgChange('fumikiriFimg',crossImgF0.src,'fumikiriF');
+		}
+		fumikiriOn=fumikiriOnFlag;
+	}
+}}
+//Signals--------------------------------------
+signalRgogo=false;signalLgogo=true;
+signalRgogoFlag=false;signalLgogo=true;
+signalLeftPos=signalLpos;signalRightPos=signalRpos+signalwidth;
+function signalControl(){if(signalOK){
+	if(speedratio<0){//←
+		signalRgogoFlag=false;
+		if(checkpos<signalLeftPos){
+			signalLgogoFlag=false;
+		}else{
+			signalLgogoFlag=true;
+		}
+		signalChange();
+	}
+	if(speedratio>0){//→
+		signalLgogoFlag=false;
+		if(trainRightPos>signalRightPos){
+			signalRgogoFlag=false;
+		}else{
+			signalRgogoFlag=true;
+		}
+		signalChange();
+	}
+}}
+function signalChange(){if(signalOK){
+	if(signalRgogo!=signalRgogoFlag){
+		if(signalRgogoFlag==true){
+			imgChange('shingoRimg',signalImgR1.src,'shingoR');
+		}else{
+			imgChange('shingoRimg',signalImgR0.src,'shingoR');
+		}
+		signalRgogo=signalRgogoFlag;
+	}
+	if(signalLgogo!=signalLgogoFlag){
+		if(signalLgogoFlag==true){
+			imgChange('shingoLimg',signalImgL1.src,'shingoL');
+		}else{
+			imgChange('shingoLimg',signalImgL0.src,'shingoL');
+		}
+		signalLgogo=signalLgogoFlag;
+	}
+}}
+//Run--------------------------------------
+trainNow=1;nextTrain=2;if(howmanytrains==1){nextTrain=1};
+sceneposbase=0;scenepos=sceneposbase;
+trainRightPos=0;
+function trainControl(){
+	blurPx=Math.round(Math.abs(realspeed*speedratio)/3.6*blurRatio);
+	if(sceneScroller){
+		scrollstartpointR=windowwidthpx-scrollChangeCoordinateR;
+		scrollstartpointL=scrollChangeCoordinateL;
+		if((trainposbase>scrollstartpointR&&sceneposbase>sceneScrollingPx&&directionNow==1)||(trainposbase<scrollstartpointL&&sceneposbase<0&&directionNow==0)){
+			sceneposbase-=(realspeed*speedratio);
+			if(sceneposbase<sceneScrollingPx){
+				trainposbase+=(sceneScrollingPx-sceneposbase);
+				sceneposbase=sceneScrollingPx;
+			}
+			if(sceneposbase>0){
+				trainposbase-=sceneposbase;
+				sceneposbase=0;
+			}
+			if(blurEffect){blurOff()};
+		}else{
+			trainposbase+=(realspeed*speedratio);
+			if(blurEffect){blurOn()};
+		}
+	}else{
+		trainposbase+=(realspeed*speedratio);
+		if(blurEffect){blurOn()};
+	}
+	if(trainposbase<leftlimit[trainNow]||trainposbase>rightlimit){trainChanger()}
+	trainpos=Math.round(trainposbase);
+	scenepos=Math.round(sceneposbase);
+	checkpos=trainpos-scenepos;
+	vistapos=Math.round(sceneposbase*vistaScrollRatio);
+	bbgpos=Math.round(sceneposbase*overBackScrollRatio);
+	trainRightPos=checkpos+trainLength[trainNow];
+	crossControl();
+	signalControl();
+	layerMoveX('densha',trainpos);
+	if(glassOK[trainNow]){layerMoveX('mado',trainpos+glassOffset[trainNow]);}
+	if(sceneScroller){
+		layerMoveX('enkei',vistapos);
+		layerMoveX('haikeioku',bbgpos);
+		layerMoveX('haikei',scenepos);
+		layerMoveX('zenkei',scenepos);
+		layerMoveX('kasen',scenepos);
+		layerMoveX('hashira',scenepos);
+		layerMoveX('senro',scenepos);
+		layerMoveX('fumikiriB',scenepos+crossingPos);
+		layerMoveX('fumikiriF',scenepos+crossingPos);
+		layerMoveX('shingoR',scenepos+signalRpos);
+		layerMoveX('shingoL',scenepos+signalLpos);
+	}
+	if((scrollspoil&&zeroscroll==false)||(scrollspoil&&speedratio!=0&&zeroscroll)){yscrollCheck();scrollTo(0,yyy)};
+	trainTimerStarted=true;
+	traintimer=setTimeout('trainControl()',100);
+}
+trainTimerStarted=false;
+function unloadStop(){
+	if(trainTimerStarted){clearTimeout(traintimer);}
+}
+//Blur--------------------------------
+function blurOff(){if(blurEffect){
+	document.all('densha').filters['blur'].enabled=false;
+	if(speedratio<0){
+		sceneBlurAngle=270;
+	}else{
+		sceneBlurAngle=90;
+	}
+	document.all('haikei').filters['blur'].enabled=true;
+	document.all('haikei').filters['blur'].direction=sceneBlurAngle;
+	document.all('haikei').filters['blur'].strength=blurPx;
+	document.all('senro').filters['blur'].enabled=true;
+	document.all('senro').filters['blur'].direction=sceneBlurAngle;
+	document.all('senro').filters['blur'].strength=blurPx;
+	if(foregroundOK){
+		document.all('zenkei').filters['blur'].enabled=true;
+		document.all('zenkei').filters['blur'].direction=sceneBlurAngle;
+		document.all('zenkei').filters['blur'].strength=blurPx;
+	}
+	if(electrified){
+		if(oldwire==false){
+			document.all('kasen').filters['blur'].enabled=true;
+			document.all('kasen').filters['blur'].direction=sceneBlurAngle;
+			document.all('kasen').filters['blur'].strength=blurPx;
+		}
+		document.all('hashira').filters['blur'].enabled=true;
+		document.all('hashira').filters['blur'].direction=sceneBlurAngle;
+		document.all('hashira').filters['blur'].strength=blurPx;
+	}
+	if(signalOK){
+		document.all('shingoR').filters['blur'].enabled=true;
+		document.all('shingoR').filters['blur'].direction=sceneBlurAngle;
+		document.all('shingoR').filters['blur'].strength=blurPx;
+		document.all('shingoL').filters['blur'].enabled=true;
+		document.all('shingoL').filters['blur'].direction=sceneBlurAngle;
+		document.all('shingoL').filters['blur'].strength=blurPx;
+	}
+	if(crossingOK){
+		document.all('fumikiriB').filters['blur'].enabled=true;
+		document.all('fumikiriB').filters['blur'].direction=sceneBlurAngle;
+		document.all('fumikiriB').filters['blur'].strength=blurPx;
+		document.all('fumikiriF').filters['blur'].enabled=true;
+		document.all('fumikiriF').filters['blur'].direction=sceneBlurAngle;
+		document.all('fumikiriF').filters['blur'].strength=blurPx;
+	}
+}}
+function blurOn(){if(blurEffect){
+	document.all('haikei').filters['blur'].enabled=false;
+	document.all('senro').filters['blur'].enabled=false;
+	document.all('zenkei').filters['blur'].enabled=false;
+	document.all('kasen').filters['blur'].enabled=false;
+	document.all('hashira').filters['blur'].enabled=false;
+	document.all('shingoR').filters['blur'].enabled=false;
+	document.all('shingoL').filters['blur'].enabled=false;
+	document.all('fumikiriB').filters['blur'].enabled=false;
+	document.all('fumikiriF').filters['blur'].enabled=false;
+	document.all('densha').filters['blur'].enabled=true;
+	if(speedratio<0){
+		document.all('densha').filters['blur'].direction=90;
+	}else{
+		document.all('densha').filters['blur'].direction=270;
+	}
+	document.all('densha').filters['blur'].strength=blurPx;
+}}
+//Change--------------------------------------
+function trainChanger(){
+	layerHide('densha');
+	trainNow=nextTrain;
+	if(directionWhenAuto==2){//alternate
+		if(directionNow==1){directionNow=0;speedratio=-1}else{directionNow=1;speedratio=1}
+	}
+	if(directionWhenAuto==4){//random
+		dirshuffle2=Math.random()*10;
+		if(dirshuffle2>5){directionNow=1;speedratio=1}else{directionNow=0;speedratio=-1}
+	}
+	if(directionWhenAuto==5){
+		if(toRight[trainNow]){directionNow=1;speedratio=1}else{directionNow=0;speedratio=-1}
+	}
+	if(directionNow==0){
+		trainposbase=rightlimit;
+		if(sceneScroller){sceneposbase=sceneScrollingPx};
+		realspeed=(trainspeedL[trainNow]/3.6/scaleRatio);
+	};
+	if(directionNow==1){
+		trainposbase=leftlimit[trainNow];
+		sceneposbase=0;
+		realspeed=(trainspeedR[trainNow]/3.6/scaleRatio);
+	};
+	if(X02now==false){
+		layerChange('densha',trainTags[trainNow]);
+		if(glassShow){
+			if(glassOK[trainNow]){
+				layerChange('mado',glassTag[trainNow]);
+				layerShow('mado');
+			}else{
+				layerHide('mado');
+			}
+		}
+	};
+	layerShow('densha');
+	if(bgChangeOK&&backgroundOK){bgChange()};
+	if(bbgChangeOK&&overTheBackgroundOK){bbgChange()};
+	if(fgChangeOK&&foregroundOK){fgChange()};
+	if(vgChangeOK&&vistaOK){vgChange()};
+	nextTrain=trainNow+1;if(nextTrain>howmanytrains){nextTrain=1};
+}
+//SceneChanger---------------------------------
+bgChangeOK=false;
+if(backgroundImgFile.length>1){bgChangeOK=true}
+if(X02now){bgChangeOK=false}
+bgChangeCount=0;bgNow=0;
+function bgChange(){
+	bgChangeCount++;
+	if(bgChangeCount>bgChangePerTrain){bgChangeCount=1}
+	if(bgChangeCount==bgChangePerTrain){
+		bgNow++;
+		if(bgNow>=backgroundImgFile.length){bgNow=0}
+		imgChange('haikeiga',sceneFolderName+backgroundImgFile[bgNow],'haikei');
+	}
+}
+bbgChangeOK=false;
+if(overTheBackgroundImgFile.length>1){bbgChangeOK=true}
+if(X02now){bbgChangeOK=false}
+bbgChangeCount=0;bbgNow=0;
+function bbgChange(){
+	bbgChangeCount++;
+	if(bbgChangeCount>bgChangePerTrain){bbgChangeCount=1}
+	if(bbgChangeCount==bgChangePerTrain){
+		bbgNow++;
+		if(bbgNow>=overTheBackgroundImgFile.length){bbgNow=0}
+		imgChange('okuhaikeiga',sceneFolderName+overTheBackgroundImgFile[bbgNow],'haikeioku');
+	}
+}
+fgChangeOK=false;
+if(foregroundImgFile.length>1){fgChangeOK=true}
+if(X02now){fgChangeOK=false}
+fgChangeCount=0;fgNow=0;
+function fgChange(){
+	fgChangeCount++;
+	if(fgChangeCount>bgChangePerTrain){fgChangeCount=1}
+	if(fgChangeCount==bgChangePerTrain){
+		fgNow++;
+		if(fgNow>=foregroundImgFile.length){fgNow=0}
+		imgChange('zenkeiga',sceneFolderName+foregroundImgFile[fgNow],'zenkei');
+	}
+}
+vgChangeOK=false;
+if(vistaImgFile.length>1){vgChangeOK=true}
+if(X02now){vgChangeOK=false}
+vgChangeCount=0;vgNow=0;
+function vgChange(){
+	vgChangeCount++;
+	if(vgChangeCount>bgChangePerTrain){vgChangeCount=1}
+	if(vgChangeCount==bgChangePerTrain){
+		vgNow++;
+		if(vgNow>=vistaImgFile.length){vgNow=0}
+		imgChange('enkeiga',sceneFolderName+vistaImgFile[vgNow],'enkei');
+	}
+}
+//Controler-------------------------------------
+touchXpos=0;touchYpos=0;
+isTouchable=false;
+if(window.TouchEvent){
+	if(window.addEventListener){
+		isTouchable=true;
+	}
+}
+isTouchedNow=false;
+function touchBtn(e){
+	e.preventDefault();
+	fingerTouchObj=e.changedTouches[0];
+	touchXpos=fingerTouchObj.pageX;
+	touchYpos=fingerTouchObj.pageY;
+	fingerTouchType=e.type;
+	if(fingerTouchType=="touchstart"){
+		isTouchedNow=true;
+		btnTouch(e);
+	}else if(fingerTouchType=="touchmove"){
+		btnTouch(e);
+	}else if(fingerTouchType=="touchend"){
+		isTouchedNow=false;
+	}else if(fingerTouchType=="touchcancel"){
+		isTouchedNow=false;
+	}
+	return false;
+}
+var protectlayer;var btnlayer;var msobjobj;
+function mousepreset(){
+	if(nn4){
+		btnlayer=document.layers['tetsudou'].document.layers['controlerbar'];
+		protectlayer=document.layers['tetsudou'].document.layers['protector'];
+		btnlayer.captureEvents(Event.MOUSEDOWN|Event.MOUSEMOVE);
+		protectlayer.captureEvents(Event.MOUSEDOWN);
+		document.captureEvents(Event.MOUSEUP)
+	}
+	if(ie){
+		btnlayer=document.all("controlerbar");
+		protectlayer=document.all("protector");
+		protectlayer.onmousemove=ptMove;
+	}
+	if(nn6){
+		btnlayer=document.getElementById("controlerbar");
+		protectlayer=document.getElementById("protector");
+	}
+	if(!automaticRun){
+		btnlayer.onmousedown=btnDwn;
+		btnlayer.onmousemove=btnMove;
+		if(isTouchable){
+			btnlayer.addEventListener("touchstart",touchBtn,false);
+			btnlayer.addEventListener("touchmove",touchBtn,false);
+			btnlayer.addEventListener("touchend",touchBtn,false);
+			btnlayer.addEventListener("touchcancel",touchBtn,false);
+		}
+	}
+	protectlayer.onmousedown=ptDwn;
+	document.onmouseup=btnUp;
+}
+function ptDwn(){self.focus();return false;}
+function ptMove(){return false;}
+var nowX;
+function btnDwn(e){//mousedown
+	msobjobj=this;
+	if(nn4){nowX=e.pageX-3-sceneLeftMargin;}
+	if(ie){nowX=event.clientX-3+document.body.scrollLeft-sceneLeftMargin;}
+	if(nn6){nowX=e.pageX-3-sceneLeftMargin;}
+	speedControler();
+	return false;
+}
+function btnTouch(e){
+	if(isTouchedNow){
+		nowX=touchXpos-3-sceneLeftMargin;
+		speedControler();
+	}
+	return false;
+}
+speedcontrolflag=-40;
+function btnMove(e){//mousedrag
+	if(!msobjobj){return true;}
+	if(nn4){nowX=e.pageX-3-sceneLeftMargin;}
+	if(ie){nowX=event.clientX-3+document.body.scrollLeft-sceneLeftMargin;}
+	if(nn6){nowX=e.pageX-3-sceneLeftMargin;}
+	speedControler();
+	return false;
+}
+function speedControler(){
+	if(nowX>136){nowX=136}
+	if(nowX<26){nowX=26}
+	layerMoveX('controlerbutton',nowX);
+	speedcontrolflag=nowX-81;
+	if(speedcontrolflag<-5){
+		speedratio=(speedcontrolflag+5)/50;
+		directionNow=0;
+		realspeed=(trainspeedL[trainNow]/3.6/scaleRatio);
+		layerShow('controlerL');
+		layerHide('controlerR');
+	}
+	if(speedcontrolflag>5){
+		speedratio=(speedcontrolflag-5)/50;
+		directionNow=1;
+		realspeed=(trainspeedR[trainNow]/3.6/scaleRatio);
+		layerHide('controlerL');
+		layerShow('controlerR');
+	}
+	if(speedcontrolflag>=-5&&speedcontrolflag<=5){
+		speedratio=0;
+		realspeed=0;
+		layerHide('controlerL');
+		layerHide('controlerR');
+	}
+}
+function btnUp(e) {//mouseup
+	msobjobj=null;
+	if(!(speedcontrolflag<-5||speedcontrolflag>5)){layerMoveX('controlerbutton',81);}
+}
+//KeyControl----------------------------------
+function setKeyControl(){if(automaticRun==false&&keyControlOK){
+	if(ie||nn6){document.onkeypress=kprs;}
+	if(nn4){window.onkeypress=kprs;window.captureEvents(Event.KEYPRESS);}
+}}
+function kprs(e){
+	if(ie){keyNum=event.keyCode};
+	if(nn4||nn6){keyNum=e.which};
+	if(keyNum==70||keyNum==102){//(Ff)
+		if(speedratio>0.8&&speedratio<=1){
+			speedratio=0.8;layerMoveX('controlerbutton',86+40);
+		}else if(speedratio>0.6&&speedratio<=0.8){
+			speedratio=0.6;layerMoveX('controlerbutton',86+30);
+		}else if(speedratio>0.4&&speedratio<=0.6){
+			speedratio=0.4;layerMoveX('controlerbutton',86+20);
+		}else if(speedratio>0.2&&speedratio<=0.4){
+			speedratio=0.2;layerMoveX('controlerbutton',86+10);
+		}else if(speedratio>0&&speedratio<=0.2){
+			speedratio=0;directionNow=0;layerMoveX('controlerbutton',81);
+			layerHide('controlerL');layerHide('controlerR');
+			realspeed=0;
+		}else if(speedratio<=0&&speedratio>-0.2){
+			speedratio=-0.2;directionNow=0;layerMoveX('controlerbutton',76-10);
+			layerShow('controlerL');layerHide('controlerR');
+			realspeed=(trainspeedL[trainNow]/3.6/scaleRatio);
+		}else if(speedratio<=-0.2&&speedratio>-0.4){
+			speedratio=-0.4;layerMoveX('controlerbutton',76-20);
+		}else if(speedratio<=-0.4&&speedratio>-0.6){
+			speedratio=-0.6;layerMoveX('controlerbutton',76-30);
+		}else if(speedratio<=-0.6&&speedratio>-0.8){
+			speedratio=-0.8;layerMoveX('controlerbutton',76-40);
+		}else if(speedratio<=-0.8&&speedratio>-1){
+			speedratio=-1;layerMoveX('controlerbutton',76-50);
+		}
+	}
+	if(keyNum==71||keyNum==103||keyNum==72||keyNum==104){//(GgHh)
+		speedratio=0;layerMoveX('controlerbutton',81);
+		layerHide('controlerL');layerHide('controlerR');
+		realspeed=0;
+	}
+	if(keyNum==74||keyNum==106){//(Jj)
+		if(speedratio>=-1&&speedratio<-0.8){
+			speedratio=-0.8;layerMoveX('controlerbutton',76-40);
+		}else if(speedratio>=-0.8&&speedratio<-0.6){
+			speedratio=-0.6;layerMoveX('controlerbutton',76-30);
+		}else if(speedratio>=-0.6&&speedratio<-0.4){
+			speedratio=-0.4;layerMoveX('controlerbutton',76-20);
+		}else if(speedratio>=-0.4&&speedratio<-0.2){
+			speedratio=-0.2;layerMoveX('controlerbutton',76-10);
+		}else if(speedratio>=-0.2&&speedratio<0){
+			speedratio=0;directionNow=1;layerMoveX('controlerbutton',81);
+			layerHide('controlerL');layerHide('controlerR');
+			realspeed=0;
+		}else if(speedratio>=0&&speedratio<0.2){
+			speedratio=0.2;directionNow=1;layerMoveX('controlerbutton',86+10);
+			layerHide('controlerL');layerShow('controlerR');
+			realspeed=(trainspeedR[trainNow]/3.6/scaleRatio);
+		}else if(speedratio>=0.2&&speedratio<0.4){
+			speedratio=0.4;layerMoveX('controlerbutton',86+20);
+		}else if(speedratio>=0.4&&speedratio<0.6){
+			speedratio=0.6;layerMoveX('controlerbutton',86+30);
+		}else if(speedratio>=0.6&&speedratio<0.8){
+			speedratio=0.8;layerMoveX('controlerbutton',86+40);
+		}else if(speedratio>=0.8&&speedratio<1){
+			speedratio=1;layerMoveX('controlerbutton',86+50);
+		}
+	}
+	return false;
+}
+//Spacer--------------------------------------
+dumspace1="<table border=0 cellpadding=0 cellspacing=0><tr><td valign=top nowrap><img src='"+controlFolderName+invisiblePicture+"' WIDTH=4 HEIGHT=";
+dumspace2="><"+"/td><"+"/tr><"+"/table>";
+dumspace=dumspace1+(sceneAllHeight+4)+dumspace2;
+//Event--------------------------------------
+window.onload=preset;
+window.onunload=unloadStop;
+//--></script>
+<script language="JavaScript" type="text/javascript"><!--
+blurstring1="<st"+"yle type='text/css'>";
+blurstring2=".speedyeffect{filter:blur(direction=90;strength=0)}";
+blurstring3="<"+"/"+"style>";
+if(blurEffect){document.writeln(blurstring1);document.writeln(blurstring2);document.writeln(blurstring3);}
+//▲鉄道走行プログラムここまで。
+//--></script>
+
+
+<style type="text/css"><!--
+body{
+	background-image:url(manual/kitbg.gif);
+	color:#999999;
+	overflow-x:hidden;
+}
+--></style>
+<!--↑●ここのスタイルシートはマニュアルと合わせるためのもの。実際に使用する際は変更すること-->
+
+
+</head>
+<body>
+
+
+<p>●ここにタイトルなど<small>（不要ならこの行は削除して、zeroTopMargin=true に設定）</small>。</p>
+
+
+<!--▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽
+▼鉄道走行オブジェクトここから-->
+<div id="tetsudou" style="position:absolute;left:0px;">
+<script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&loadingBlack){document.write(startBlackTag)}//--></script>
+<div id="now" style="position:absolute;left:20px;top:20px;visibility:hidden;width:600px">
+
+<font color="#dddddd">画像読込中。しばらくお待ち下さい。</font>
+<!--●↑読込中表示を変えたい場合は、この行を書き直す-->
+
+</div>
+<div id="loading" style="position:absolute;left:0px;top:24px;visibility:hidden;width:10;height:4;clip:rect(0px,10px,4px,0px);layer-background-color:#ff0000;background-color:#ff0000"><br></div>
+<!--controler back-->
+<div id="ctrlback" style="position:absolute;left:0px;top:0px;visibility:visible;width:1600;height:36;clip:rect(0px,1600px,36px,0px);"><br></div>
+<!--B-->
+<div id="enkei" style="position:absolute;left:0px;top:0px;visibility:hidden"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&vistaOK){document.write(vtTag)}//--></script></div>
+<div id="haikeioku" style="position:absolute;left:0px;top:0px;visibility:hidden"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&overTheBackgroundOK){document.write(bbgTag)}//--></script></div>
+<div id="haikei" style="position:absolute;left:0px;top:0px;visibility:hidden" class="speedyeffect"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&backgroundOK){document.write(bgTag)}//--></script></div>
+<div id="hashira" style="position:absolute;left:0px;top:0px;visibility:hidden" class="speedyeffect"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&electrified&&poleOK){document.write(hashiraTag)}//--></script></div>
+<div id="shingoR" style="position:absolute;left:0px;top:0px;visibility:hidden" class="speedyeffect"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&signalOK){document.write(signalRTag)}//--></script></div>
+<div id="fumikiriB" style="position:absolute;left:0px;top:0px;visibility:hidden" class="speedyeffect"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&crossingOK){document.write(crossBTag)}//--></script></div>
+<div id="kasen" style="position:absolute;left:0px;top:0px;visibility:hidden" class="speedyeffect"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&electrified){document.write(kasenTag)}//--></script></div>
+<div id="senro" style="position:absolute;left:0px;top:0px;visibility:hidden" class="speedyeffect"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&railOK){document.write(railTag)}//--></script></div>
+<!--train-->
+<script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&glassShow){document.write(glassDiv)}//--></script>
+<div id="densha" style="position:absolute;left:0px;top:1px;visibility:hidden" class="speedyeffect"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK){document.write(trainTags[1])}//--></script></div>
+<!--F-->
+<div id="fumikiriF" style="position:absolute;left:0px;top:0px;visibility:hidden" class="speedyeffect"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&crossingOK){document.write(crossFTag)}//--></script></div>
+<div id="shingoL" style="position:absolute;left:0px;top:0px;visibility:hidden" class="speedyeffect"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&signalOK){document.write(signalLTag)}//--></script></div>
+<div id="zenkei" style="position:absolute;left:0px;top:0px;visibility:hidden" class="speedyeffect"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&foregroundOK){document.write(fgTag)}//--></script></div>
+<!--controler-->
+<div id="controlerbase" style="position:absolute;left:20px;top:0px;visibility:hidden"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK){document.write(controlerbaseTags)}//--></script></div>
+<div id="controlerL" style="position:absolute;left:20px;top:0px;visibility:hidden"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&automaticRun==false){document.write(controlerLTags)}//--></script></div>
+<div id="controlerR" style="position:absolute;left:20px;top:0px;visibility:hidden"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&automaticRun==false){document.write(controlerRTags)}//--></script></div>
+<div id="controlerbutton" style="position:absolute;left:36px;top:0px;visibility:hidden"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&automaticRun==false){document.write(controlerbtnTags)}//--></script></div>
+<!--protector-->
+<div id="protector" style="position:absolute;left:0px;top:0px;visibility:hidden"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK){document.write(protectorTags)}//--></script></div>
+<div id="controlerbar" style="position:absolute;left:20px;top:0px;visibility:hidden"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&automaticRun==false){document.write(controlerbarTags)}//--></script></div>
+</div>
+<script language="JavaScript" type="text/javascript"><!--
+if(textUnderTheRail){document.write(dumspace)};
+if(zeroTopMargin&&dhtmlOK){sceneMoveY(0)}
+if(dhtmlOK){layerShow('now')}
+if(loadingIndicator&&dhtmlOK){layerShow('loading');loadingLight()}
+//--></script>
+<!--▲鉄道走行オブジェクトここまで
+△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△-->
+
+
+<p>●ここに本文。</p>
+
+</body>
+</html>

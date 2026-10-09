@@ -1,0 +1,1828 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html dir="ltr">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=Shift_JIS">
+<meta http-equiv="imagetoolbar" content="no">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>Opaku's Train Kit : M01 v4.5</title>
+<script language="JavaScript" type="text/javascript"><!--
+/*
+●Opaku's Train Kit M01 ver.4.5 (May 2016) 
+v4.5 May 2016/v4.4 Jan.2016/v4.3 Jun.2014/v4.0-4.2 Apr.2014/v3.9 Jun.2006/v3.8 Feb.2006/v3.7 Jul.2005/v3.62 Jul.2004/v3.61 May 2004/v3.6 Feb.2004/v3.5 Nov.2003/v3.4 Sep.2003/v3.3 Aug.2003/v3.22 Mar.2003/v3.2 Feb.2003/v3.11 Dec.2002/v3.0 Aug.2002/
+v2.1 Jun.2002/v2.0 Apr.2002/
+v1.41 Mar.2002/v1.3 Mar.2002/v1.2 Feb.2002/v1.1 May 2001/v1.0 Apr.2001
+DynamicHTML programed by (C) 2001-2016 Mr.Opaku = Sonobe Souan
+http://www.mars.dti.ne.jp/~opaku/zigzag/
+●Trains Illustrated by (C)--電車画像を描いた人の名前--
+http://www ----
+
+*/
+//↓配列宣言等（ここは無視して次の「パラメータ設定」へ）----------
+trainPicture=new Array();for(i=1;i<=2;i++){trainPicture[i]=new Array()}trainLength=new Array();doorHandling=new Array();trainLocoHead=new Array();glassOK=new Array();glassFile=new Array();glassOpacity=new Array();glassPngOK=new Array();glassPngFile=new Array();
+
+
+//▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+//↓パラメータ設定
+
+//▼車輌画像の基本設定
+//↓車輌画像の規格
+trainHeightPixel=60;//車輌画像の天地寸法（単位ピクセル・初期値 60）
+//↓車輛画像フォルダ
+trainFolderName="traingif";//車両画像フォルダ名（初期値 "traingif"）
+//ここを変えた場合は「traingifフォルダ云々」という説明は読み替えられよ。
+
+//▼編成の設定
+//↓編成長
+trainLength[1]=2000;//列車の編成長（単位ピクセル・1190以下の時のみ列車通過後に踏切が開く）
+//↓車輌画像ファイル名
+trainPicture[1][1]="kitEC_base4_TCL.gif";//左端車輌（拡張子付）
+trainPicture[1][2]="kitEC_base4_M2.gif";//２両目
+trainPicture[1][3]="kitEC_base4_M1.gif";//３両目（20m車＋幅800pxモニタでは以下の車輌は見えない）
+trainPicture[1][4]="kitEC_base4_M2.gif";//４両目
+trainPicture[1][5]="kitEC_base4_M1.gif";//５両目（20m車＋幅1024～1152pxモニタでは以下の車輌は見えない）
+trainPicture[1][6]="kitEC_base4_TCR.gif";//６両目（20m車＋幅1280pxモニタでは以下の車輌は見えない）
+//trainPicture[1][1]="";//７両目（20m車の場合、以下は画面内には表示されない）
+//trainPicture[1][8]="";//８両目
+//trainPicture[1][9]="";//９両目
+//trainPicture[1][10]="";//10両目
+//使用しない車輌は削除、またはコメントアウト（行頭に//を入れる）しなければならない。
+//"と"の間に画像ファイル名を書込む時、"を間違って削除しないよう注意！（エラーになる）
+//↓ドア扱いの設定　v3.0-
+doorHandling[1]=true;//自車が「ドア扱いあり」ならtrue、なしならfalse。
+//↑ドア扱いありにすると、駅停車時にドア開。ドア開時には発車不可。
+//自車の見た目のドア開閉は相対式プラットフォーム時のみ。
+trainLocoHead[1]=false;//自車の先頭が機関車ならtrue、電車や気動車ならfalse。
+//↑先頭車輌（＝自車の場合、左端車輌）が機関車か否かというのは、先頭車輌のドア開閉の有無を意味する。
+doorOpenSecond=10;//ドアを開いている時間（単位・秒／10～）
+doorOKoverPosition=1.5;//ドア開閉可能な駅停車位置超過範囲（単位・m／1～10）
+doorOKlessPosition=10;//ドア開閉可能な駅停車位置不足範囲（単位・m／1～200）
+
+//↓空気抵抗増加装置　v3.7-
+airResistanceBrakeOK=false;//非常制動時に空気抵抗ブレーキを出すならtrue、そうでないなら false。
+airResistanceSpeed=50;//空気抵抗ブレーキ作動の下限速度（単位・km/h／1～）
+airResistanceCode="arb";//空気抵抗ブレーキ用コード（任意の文字列／ファイル名に付加する）
+//車輛ファイル名が"kitEC_base4_TCL.gif"＋コード"arb"だとすると、空力ブレーキ作動時の車輛画像名が"kitEC_base4_TCLarb.gif"となる。
+//空気抵抗ブレーキ搭載のJR東日本 E954が登場した事により、v3.7からこの機能を追加した。
+
+//▼対向列車の設定　v2.0-
+//↓時々駅に停車している対向車輌の有無。
+anotherTrain=true;//trueで対向列車あり、falseでなし。
+anotherTrainStopOffset=2;//対向列車の駅停車位置調整（単位ピクセル・正数で右へ／初期値2）
+//対向列車の編成
+trainPicture[2][1]="kitEC_103_chuo.gif";//左端車輌（拡張子付）
+trainPicture[2][2]="kitEC_103_chuo.gif";//２両目（ドア閉画像（～aのつかないファイル名）を指定すること）
+//trainPicture[2][3]="";//３両目
+//trainPicture[2][4]="";//４両目
+//trainPicture[2][5]="";//５両目
+//trainPicture[2][6]="";//６両目
+//trainPicture[2][7]="";//７両目
+//trainPicture[2][8]="";//８両目
+//trainPicture[2][9]="";//９両目
+//trainPicture[2][10]="";//10両目
+//使用しない車輌は削除、またはコメントアウト（行頭に//を入れる）しなければならない。
+//↓ドア扱いの設定　v3.0-
+doorHandling[2]=true;//対向列車が「ドア扱いあり」ならtrue、なしならfalse。
+trainLocoHead[2]=false;//対向列車の先頭が機関車ならtrue、電車や気動車ならfalse。
+//↑先頭車輌（＝対向列車の場合、右端車輌）が機関車か否かというのは、先頭車輌のドア開閉の有無を意味する。
+//対向列車のドア開閉は島式プラットフォーム時のみ有効（ドア閉車輌を指定）
+//ドア扱いなしにすると、対向列車の駅発車シーンも停止する。
+//ドア扱いなし設定時の指定方法は v3.8から変更になっているので注意！
+
+//▼列車の性能等の設定
+maxpotential=160;//潜在限界速度（km/h）この数値が低いと高速時の加速が大きくにぶる。
+speedlimit=135;//最高時速（km/h）
+//↓コントローラの加減速設定（マイナスで減速、プラスで加速）
+emergentBrake=-4.9;//非常制動（初期値 -4.5）
+fullbrake=-3.8;//制動上限（初期値 -3.5）
+fullpower=3.1;//力行上限（初期値 2.5）
+powerOff=-0.09;//惰行時の自然減速（初期値 -0.09）
+//↑上限値だけでなく各段を個別に設定したい場合は↓を設定。
+b3ratio=0.75;//制動3 の制動上限に対する比率（初期値 0.75）
+b2ratio=0.50;//制動2〃（初期値 0.5）
+b1ratio=0.25;//制動1〃（初期値 0.25）
+n1ratio=0.55;//力行1 の力行上限に対する比率（初期値 0.55）
+
+//▼半透明窓の設定（CSS指定による半透明窓）
+//↓自列車
+glassOK[1]=true;//半透明窓設定するならtrue、しないならfalse。
+glassFile[1]="glassECbase4_6.gif";//半透明窓用画像（自列車と重なる画像／１編成で１枚なので注意／拡張子付指定）
+glassOpacity[1]=20;//窓の不透明度（単位％・0で完全透明、100で不透明／初期値 40）
+//↓対向列車
+glassOK[2]=false;//半透明窓設定するならtrue、しないならfalse。
+glassFile[2]="～.gif";//半透明窓用画像（対向列車と重なる画像／１編成で１枚なので注意／拡張子付指定）
+glassOpacity[2]=20;//窓の不透明度（単位％・0で完全透明、100で不透明／初期値 40）
+//半透明窓用画像は traingifフォルダに入れる。
+
+//▼半透明窓の設定（PNG-alpha channelによる半透明窓）v3.5-
+//↓自列車
+glassPngOK[1]=true;//半透明窓設定するならtrue、しないならfalse。
+glassPngFile[1]="glassECbase4_6.png";//半透明画像（自列車と重なる画像／１編成で１枚なので注意／拡張子付指定）
+//↓対向列車
+glassPngOK[2]=false;//半透明窓設定するならtrue、しないならfalse。
+glassPngFile[2]="～.png";//半透明画像（対向列車と重なる画像／１編成で１枚なので注意／拡張子付指定）
+
+//▼半透明窓画像の使い分け　v4.0-
+glassChoice=0;//下記から選択
+//0=標準。WinIE9までを CSS filterによる半透明、その他ブラウザを 24bit-PNG。
+//1=CSS優先。ほぼ全てのブラウザで PNGを使わず CSS指定による半透明。
+//2=PNG優先。WinIE7以降はすべて 24bit-PNG。
+//PNG優先でも PNG画像を指定していなければキャンセルとなるので注意。
+
+//▼半透明窓の位置ずれ　v3.61-
+glassOffset=0;//半透明窓の位置を指定数値分、左右へずらす（自列車のみ。単位ピクセル／負数で左へ、正数で右へ）
+//ヘッドライト表現などに半透明窓を使う場合に列車より左にずらすことができる。
+
+//▼駅の設定
+//↓駅タイプの指定
+islandPF=false;//島式ならtrue、相対式ならfalse。
+//↓駅画像ファイル名（島式設定時）
+stationBimgFile="station_M1001isb.gif";//島式プラットフォームの画像名（拡張子付）
+stationFimgFile="station_M1001isf.gif";//列車の手前になる駅舎などの画像名（拡張子付）
+//↓駅画像ファイル名（相対式設定時）
+stationBimgFileOp="station_M1001opb.gif";//奥のプラットフォーム画像名（拡張子付）
+stationFimgFileOp="station_M1001opf.gif";//手前のプラットフォームや駅舎などの画像名（拡張子付）
+//↓駅画像左端と駅停止位置のズレ
+stopPositionOffset=50;//停止位置を変更する場合に変更（単位ピクセル・初期値50／範囲0～700）
+//正確には停止位置はそのままで駅の方の座標をずらしている。
+//↓駅停止位置表示画像指定
+stopPositionPict="stopposition_b.gif";//駅停止位置表示の画像（初期指定は黒文字・拡張子付）
+//背景色によっては黒文字では見えないので、その場合"stopposition_w.gif"にすると白文字になる。
+
+//▼架線の設定
+//↓架線設定
+electrified=true;//電化（架線あり）ならtrue、非電化ならfalse。
+wireImgFile="trolley_wire.gif";//架線画像
+pantographHeight=5.1;//パンタ高（単位 m）
+//パンタ高にあわせた高さに架線をセットするが、初期値から変更する場合は、トンネルと架線柱を描き直す必要がある。
+//↓架線柱画像ファイル名
+poleImgFile="pole_type1.gif";//架線柱画像名（拡張子付・gif以外はエラーの可能性あり）
+//背景が動くM系では架線を消すと速度感がなくなるが、背景に木を植える等、工夫することで回避可能ではあるようだ。
+//↓駅周辺の手前架線柱設定
+poleFOK=true;//列車の手前になる駅周辺のみの架線柱の有無（true=表示、false=非表示）
+poleImgFileF="pole_type1.gif";//列車の手前になる駅周辺のみの架線の画像名（拡張子付・gif以外はエラーの可能性あり）
+//相対式プラットフォーム指定時は自動的に駅手前架線柱はfalseになるので注意！
+//相対式では手前架線柱は駅画像に描かねばならない。
+poleAndWireImgWidth=320;//架線画像と架線柱画像の幅（ピクセル指定）v3.9
+//↑IE6後期版で発生した「線路が表示されない」という問題の解決策に必要となったパラメータ。
+oldwire=false;//ver2以前の架線＋架線柱画像を使う場合は trueにして架線柱画像を指定、ver3以後の架線と架線柱を分離した画像を使う時は false（旧バージョン互換用）
+
+//▼線路の設定
+//↓線路画像ファイル名
+railImgFile="rail_normal.gif";//レールの画像指定（拡張子付・gif以外はエラーの可能性あり）
+railImgWidth=32;//レール画像の幅（ピクセル指定）v3.9
+//↑IE6後期版で発生した「線路が表示されない」という問題の解決策に必要となったパラメータ。
+oldrail=false;//v2以前のレール画像を使うならtrue、v3以後のレールを使うならfalse 。
+
+//▼踏切の設定
+//↓踏切設定
+crossingOK=true;//踏切表示（true=表示、false=非表示）
+crossing1offset=10000;//踏切１位置（初期値10000）
+crossing2offset=4600;//踏切２位置（初期値4600）
+//↓閉じた踏切画像ファイル名
+crossImgFileB1="cross_M1002_B1.gif";//線路の奥の閉じた踏切画像名（拡張子付）
+crossImgFileF1="cross_M1002_F1.gif";//線路の手前の　〃
+//↓開いた踏切画像ファイル名
+crossImgFileB0="cross_M1002_B0.gif";//線路の奥の開いた踏切画像名（拡張子付）
+crossImgFileF0="cross_M1002_F0.gif";//線路の手前の　〃
+crossImgWidth=107;//踏切画像の幅（初期値107・動作時に必要）
+//↑開いた画像は列車編成長が1190ピクセル以下の時のみ必要。なお動作はA01と異なり開閉２段階。
+
+//▼信号の設定
+//↓信号設定（制約が多いので初期値以外に変更する場合は注意が必要）
+signalOK=true;//信号表示（true=表示、false=非表示）
+signal1offset=2320;//信号１位置（初期値2320・駅）
+signal2offset=7120;//信号２位置（初期値7120）- 信号２以降は 2400以上でないと正常に動作しない。
+signal3offset=11600;//信号３位置（初期値11600・鉄橋直後）
+signal4offset=14800;//信号４位置（初期値14800・トンネル手前）
+//↓信号画像ファイル名（ファイル名のRやGより前の部分のみ記入・当然拡張子なし）
+signalFileNameHead="signal1L_";//←この場合、"signal1L_R.gif"または"signal1L_G.gif"になる。
+//↑ファイル名が"～R.gif"と"～G.gif"であることが必須。
+//踏切位置と信号位置は架線柱と重ならないよう、要チェック。
+//信号画像のサイズを変更しても画面には反映されないので注意。
+
+//▼トンネルと橋の設定
+//↓トンネル
+tunnelOK=true;//トンネル表示（true=表示、false=非表示）
+tunneloffset=13062;//トンネル位置（初期値13062）
+tunnelImgFile="tunnel_M1001.gif";//トンネルの画像名（拡張子付）
+//↓鉄橋
+bridgeOK=true;//鉄橋表示（true=表示、false=非表示）
+bridgeoffset=11854;//鉄橋位置（初期値14734トンネル手前,11854トンネル後）
+bridgeImgFile="bridge_M1001girder.gif";//鉄橋の画像名（拡張子付）
+//トンネルと鉄橋位置は初期値から、320ピクセル（架線画像左右長=架線柱間隔）単位でずらさないと架線表示に問題あり。制約が多いので初期値以外に変更する場合は注意が必要。
+//v3.0以降、トンネルに関してはポータル部分が架線柱と重ならない限り、そんなに厳密な位置である必要がなくなった。
+
+//▼その他の近景（線路脇）配置物の設定
+tracksideObj1OK=false;//近景配置物予備1（何かを配置するならtrue）
+tracksideObj1offset=0;//予備1座標
+tracksideObj1img="～.gif";//予備1に配置する画像名（拡張子付）
+//
+tracksideObj2OK=false;//近景配置物予備2
+tracksideObj2offset=0;//予備2座標
+tracksideObj2img="～.gif";//予備2に配置する画像名
+
+/*【注意！！配置物に関する制約】
+0-1700に配置したものは走行中に突然消える可能性あり。
+16000-17700に配置したものは走行中に突然出現する可能性あり。
+↑上記問題は未対策だが裏技はある。
+近景配置物予備1と予備2に同じ画像を指定して、２つの配置物をちょうど16000だけずれた座標に配置するのだ。
+ちなみに、テストモードで上記範囲を表示する。*/
+
+
+//▼背景の設定
+//↓超遠景の画像
+vistaImgFile="scene_M1001d.jpg";//（拡張子付・gif以外でもOK）
+//↓遠景の画像
+farBackgroundImgFile="scene_M1001c.gif";//（拡張子付・gif以外はエラーの可能性あり）
+farBackgroundImgWidth=1600;//遠景画像幅（ピクセル）v3.91
+//↓中景の画像
+midBackgroundImgFile="scene_M1001b.gif";//（拡張子付・gif以外はエラーの可能性あり）
+midBackgroundImgWidth=1600;//中景画像幅（ピクセル）v3.91
+//↓中近景
+nearBackgroundOK=false;//中近景に画像を配置するならtrue;
+nearBackgroundImgFile="～.gif";//（拡張子付・gif以外はエラーの可能性あり）
+nearBackgroundImgWidth=1600;//中近景画像幅（ピクセル）v3.91
+
+//▼長距離モードの設定
+//↓駅間距離
+doubleDistance=true;//一巡の走行距離 3.2km相当ならtrue、1.6km相当ならfalse（初期値 false）
+bridgeImgFile2="bridge_M1002truss.gif";//3.2km走行時には一巡毎に橋の絵を切り替える。もうひとつの橋画像を指定。
+//切替えたくない場合は、通常の橋と同じファイル名を指定。
+
+//▼キー操作の設定
+keycontrolOK=true;//trueでキー操作選択可。falseで不可。
+keyOnStart=true;//初期状態でキー操作Onならtrue、Offならfalse（keycontrolOKが falseの時は無効）
+keyNotchType=0;//キー操作時のノッチ扱い方法。0でノッチ戻しなし（戻すと一気に「切」まで移動）、1でノッチ戻しあり。
+//↑M01の場合は、力行ノッチが２つしかないので、どっちに設定しても余り違わないかも。
+keyguidePictureM01="keyboardM01_w.gif";//キー操作ガイド画像名（拡張子付・248×73px必須）
+//↑背景色と合わない等の理由により画像変更する場合はここを変更。_wは白文字、_bは黒文字。
+
+//▼その他の設定
+//↓海外鉄道対応（初期値false =日本国内）
+keepRight=false;//右側通行ならtrue、左側通行ならfalse。列車と信号機の奥と手前の関係を逆転させる。
+byTheYard=false;//速度表示や駅停車位置表示の単位切替（true=MPH・yard／false=km/h・m）
+//↓記録保存
+saveOK=true;//trueでcookieによる記録保存あり。falseで保存なし。
+saveDays=365;//記録保存日数（日／30～1000）
+cookieNameM01="M01bestrecord";//cookieの名前。
+//同じ名前のcookieが重なると記録が共用されるので、手動運転版を複数置く時は名前を変える。
+//ver.3.0以前の記録を残す場合は"yourbest"という名前にする。
+//なお"yourbest"と"yourbest2"のような、片方がもう一方の文字列を完全に含むような関係になっていると、含まれた文字列のある側のプログラムでエラーになるので注意！
+//M01・M02 ver.3.0以前とフォルダを共用すると、M01・M02の記録表示がおかしくなるので注意。v3.1以降なら問題なし。
+//↓情報表示
+lowerInfo=false;//情報表示窓を走行シーン下に置くならtrue、走行画面上に置くならfalse（初期値 false）。
+//上記をtrueにすると、操作盤を含めた鉄道シーン全高が、280から315に増えるのでフレーム表示時には注意！
+infoBaseColor="#0099ff";//情報表示窓の背景色（初期値 "#0099ff"／Netscape4では反映されず）
+infoBorderColor="#00ddff";//情報表示窓の枠色（初期値 "#00ddff"／CSS3対応ブラウザのみ）v4.5-
+infoColorA="#ffffff";//情報表示窓に表示される情報の文字色（初期値 "#ffffff"／Netscape4では反映されず）
+infoColorB="#999999";//操作盤下に表示される情報の文字色（初期値 "#999999"）
+//↓操作盤等
+panelbackOK=true;//trueで操作盤背景色あり、falseで操作盤背景色なし。
+panelbackcolor="#000000";//操作盤背景色（初期値 "#000000"=black）
+//↓その他
+//v4.4で zeroTopMargin パラメータ廃止。
+loadingBlack=true;//読込中表示の黒背景（WindowsIEは黒グラデーション）ありならtrue、なしならfalse。
+//↑Netscape4では指定如何にかかわらず黒表示無効。
+loadingIndicator=true;//読込中の点滅ライトの有無（true=表示、false=非表示）
+textUnderTheRail=true;//走行シーンの下に文章や画像や広告が存在しない場合、ここをfalseにすることでシーンと文章等の重なりを防ぐためのスペーサー（無駄な空白）の表示を停止する。
+loadedToFocus=true;//読込完了と同時に走行シーンウィンドウを前面に出すならtrue、何も処理をしないならfalse。
+//これは別ウィンドウ表示を前提としているため、フレーム内表示時とスペーサー表示時は自動的に解除される。
+
+
+//↑パラメータ設定ここまで
+//▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+
+
+//BasicFunction------------------------------------------
+nn4=false;nn6=false;ie=false;
+if(document.all){ie=true;
+}else{if(document.getElementById){nn6=true;
+}else{if(document.layers){nn4=true;
+}}}
+isMac=navigator.userAgent.toUpperCase().indexOf('MAC')!=-1;
+isWin=navigator.userAgent.toUpperCase().indexOf('WIN')!=-1;
+ie4=navigator.userAgent.toUpperCase().indexOf('MSIE 4')!=-1;
+ie5b=navigator.userAgent.toUpperCase().indexOf('MSIE 5')!=-1;
+isOpera=navigator.userAgent.toUpperCase().indexOf('OPERA')!=-1;
+ie6=ie&&(!ie4)&&(!ie5b)&&(!isOpera);
+ie5=ie&&(!ie4)&&(!isOpera);
+ie6b=navigator.userAgent.toUpperCase().indexOf('MSIE 6')!=-1;
+ie7b=navigator.userAgent.toUpperCase().indexOf('MSIE 7')!=-1;
+ie8b=navigator.userAgent.toUpperCase().indexOf('MSIE 8')!=-1;
+ie9b=navigator.userAgent.toUpperCase().indexOf('MSIE 9')!=-1;
+isIE7=ie&&!ie4&&!ie5b&&!ie6b;
+isIE9=isIE7&&!ie7b&&!ie8b;
+isIE10=isIE9&&!ie9b;
+if(isIE10){ie=false;nn6=true;}
+dhtmlOK=false;
+if(nn4||nn6||ie){dhtmlOK=true}
+function layerShow(objid){
+	if(nn4){document.layers['tetsudou'].document.layers[objid].visibility="show"};
+	if(nn6){document.getElementById(objid).style.visibility="visible"};
+	if(ie){document.all(objid).style.visibility="visible"};
+}
+function layerHide(objid){
+	if(nn4){document.layers['tetsudou'].document.layers[objid].visibility="hide"};
+	if(nn6){document.getElementById(objid).style.visibility="hidden"};
+	if(ie){document.all(objid).style.visibility="hidden"};
+}
+function layerMoveX(objid,xpos){
+	if(nn4){document.layers['tetsudou'].document.layers[objid].left=xpos};
+	if(nn6){document.getElementById(objid).style.left=xpos};
+	if(ie){document.all(objid).style.pixelLeft=xpos};
+}
+function layerMoveY(objid,ypos){
+	if(nn4){document.layers['tetsudou'].document.layers[objid].top=ypos};
+	if(nn6){document.getElementById(objid).style.top=ypos};
+	if(ie){document.all(objid).style.pixelTop=ypos};
+}
+function sceneMoveX(xpos){
+	if(nn4){document.layers['tetsudou'].left=xpos};
+	if(nn6){document.getElementById('tetsudou').style.left=xpos};
+	if(ie){document.all('tetsudou').style.pixelLeft=xpos};
+}
+function sceneMoveY(ypos){
+	if(nn4){document.layers['tetsudou'].top=ypos};
+	if(nn6){document.getElementById('tetsudou').style.top=ypos};
+	if(ie){document.all('tetsudou').style.pixelTop=ypos};
+}
+function layerBgColor(objid,color){
+	if(nn4){document.layers['tetsudou'].document.layers[objid].bgColor=color};
+	if(nn6){document.getElementById(objid).style.backgroundColor=color};
+	if(ie){document.all(objid).style.backgroundColor=color};
+}
+function layerChange(objid,newlayer){
+	if(nn4){
+		document.layers['tetsudou'].document.layers[objid].document.open();
+		document.write(newlayer);
+		document.layers['tetsudou'].document.layers[objid].document.close();
+	}
+	if(ie){document.all(objid).innerHTML=newlayer}
+	if(nn6){document.getElementById(objid).innerHTML=newlayer}
+}
+function formColorChange(formName,elementsName,color,background){if(ie||nn6){
+	document.forms[formName].elements[elementsName].style.backgroundColor=background;
+	document.forms[formName].elements[elementsName].style.color=color;
+}}
+function imgChange(imgName,imgFile,layerName){
+	if(nn4){document.layers['tetsudou'].document.layers[layerName].document.images[imgName].src=imgFile};
+	if(nn6){document.getElementById(imgName).src=imgFile};
+	if(ie){document.images[imgName].src=imgFile}
+}
+function layerZindex(objid,zorder){
+	if(nn4){document.layers['tetsudou'].layers[objid].zIndex=zorder};
+	if(nn6){document.getElementById(objid).style.zIndex=zorder};
+	if(ie){document.all(objid).style.zIndex=zorder};
+}
+windowwidthpx=1600;
+function widthCheck(){
+	if(nn4||nn6){windowwidthpx=window.innerWidth};
+	if(ie){windowwidthpx=document.body.clientWidth};
+}
+//Check---------------------------------------------
+zeroTopMargin=true;
+doorOpenCode="a";doorOpenCode2="a";if(!doorHandling[2]){doorOpenCode2="";}
+if(trainFolderName.lastIndexOf("/")!=trainFolderName.length-1){trainFolderName+="/"};
+sceneFolderName="scenegif/";controlFolderName="controlgif/";
+carsImgArray=new Array();cars2ImgArray=new Array();carsImgArrayD=new Array();cars2ImgArrayD=new Array();carsImgArrayAR=new Array();
+crossMoveFlag=false;
+if(trainLength[1]<1190){crossMoveFlag=true}
+testmode=false;
+if(location.search=="?testmode"){testmode=true}
+if(location.search=="?testZero"){zeroTopMargin=true}
+if(location.search=="?testOP"){islandPF=false}
+if(location.search=="?testIS"){islandPF=true}
+if(location.search=="?testRight"){keepRight=true;byTheYard=true}
+if(!islandPF){
+	stationBimgFile=stationBimgFileOp;
+	stationFimgFile=stationFimgFileOp;
+	poleFOK=false;
+}
+if(airResistanceSpeed<1){airResistanceSpeed=1};
+if(nn4){
+	glassOK[1]=false;glassOK[2]=false;glassPngOK[1]=false;glassPngOK[2]=false;
+}else if(glassChoice==0){
+	if(ie&&isWin&&!isOpera){glassPngOK[1]=false;glassPngOK[2]=false;}else{glassOK[1]=false;glassOK[2]=false;}
+}else if(glassChoice==1){//CSS first
+	if(ie4||ie5b||ie6b){glassPngOK[1]=false;glassPngOK[2]=false;}else{glassOK[1]=false;glassOK[2]=false;}
+}else if(glassChoice==2){//PNG first
+	if(isMac&&ie){glassOK[1]=false;glassOK[2]=false;}else{glassPngOK[1]=false;glassPngOK[2]=false;}
+}
+if(!anotherTrain){glassOK[2]=false;glassPngOK[2]=false;doorHandling[2]=false;}
+if(glassPngOK[1]){glassFile[1]=glassPngFile[1];glassOK[1]=true;glassOpacity[1]=0;}
+if(glassPngOK[2]){glassFile[2]=glassPngFile[2];glassOK[2]=true;glassOpacity[2]=0;}
+islandPFdoor=islandPF;
+if(keepRight){islandPFdoor=!islandPF;}
+if(doorOpenSecond<10){doorOpenSecond=10}
+if(doorOKoverPosition<1){doorOKoverPosition=1}
+if(doorOKoverPosition>10){doorOKoverPosition=10}
+if(doorOKlessPosition<1){doorOKlessPosition=1}
+if(doorOKlessPosition>200){doorOKlessPosition>200}
+doorCloseNow=true;
+if(doorHandling[1]){doorCloseNow=false}
+onTheWeb=false;if(location.protocol=="http:"){onTheWeb=true}
+suffixCheck=true;
+poleImgFileB=poleImgFile;//v3
+pantographheightpx=Math.round(pantographHeight*10);
+if(stopPositionOffset<0){stopPositionOffset=0}
+if(stopPositionOffset>700){stopPositionOffset=700}
+controlerPositionDown=0;//v3.2
+if(controlerPositionDown<0){controlerPositionDown=0}
+if(controlerPositionDown>60){controlerPositionDown=60}
+sceneHeightOffset=controlerPositionDown;if(lowerInfo){sceneHeightOffset=controlerPositionDown+35}
+infosTopPos=controlerPositionDown+140;
+//MakingTrains----------------------------------------
+bmpChroma0="";
+bmpChroma1=" style='filter:Chroma(color=#000000)'"
+bmpChroma=bmpChroma0;
+startString="<nobr>";endString="<"+"/nobr>";
+trainString=startString;
+trainStringD=startString;
+trainStringAR=startString;
+carsLength=trainPicture[1].length;
+trainPictureHead=new Array();
+trainPictureSfx=new Array();
+for(d=1;d<=2;d++){
+	trainPictureHead[d]=new Array();
+	trainPictureSfx[d]=new Array();
+}
+for(i=1;i<carsLength;i++){
+	trainPictureHead[1][i]=trainPicture[1][i].substr(0,trainPicture[1][i].length-4);
+	trainPictureSfx[1][i]=trainPicture[1][i].substr(trainPicture[1][i].length-4,4);
+	if((trainPictureSfx[1][i]==".bmp"||trainPictureSfx[1][i]==".BMP")&&isWin&&ie&&!isIE10){
+		bmpChroma=bmpChroma1;
+	}else{
+		bmpChroma=bmpChroma0;
+		if(trainPictureSfx[1][i]==".gif"||trainPictureSfx[1][i]==".GIF"||trainPictureSfx[1][i]==".png"||trainPictureSfx[1][i]==".PNG"){
+			void(0);
+		}else{
+			suffixCheck=false;
+		}
+	}
+	carString="<img"+bmpChroma+" src='"+trainFolderName+trainPicture[1][i]+"' name='ed"+i+"' id='ed"+i+"'>";
+	if(trainLocoHead[1]&&i==1){
+		carStringD="<img"+bmpChroma+" src='"+trainFolderName+trainPicture[1][i]+"' name='ed"+i+"' id='ed"+i+"'>";
+	}else{
+		carStringD="<img"+bmpChroma+" src='"+trainFolderName+trainPictureHead[1][i]+doorOpenCode+trainPictureSfx[1][i]+"' name='ed"+i+"' id='ed"+i+"'>";
+	}
+	trainString+=carString;
+	trainStringD+=carStringD;
+	if(airResistanceBrakeOK){
+		carStringAR="<img"+bmpChroma+" src='"+trainFolderName+trainPictureHead[1][i]+airResistanceCode+trainPictureSfx[1][i]+"' name='ed"+i+"' id='ed"+i+"'>";
+		trainStringAR+=carStringAR;
+	}
+}
+trainObj=trainString+endString;
+trainObjD=trainStringD+endString;
+trainObjAR=trainStringAR+endString;
+if(doorHandling[1]&&!islandPFdoor){trainObj=trainObjD}
+//
+cars2Length=trainPicture[2].length;
+train2String=startString;
+train2StringD=startString;
+for(i=1;i<cars2Length;i++){
+	trainPictureHead[2][i]=trainPicture[2][i].substr(0,trainPicture[2][i].length-4);
+	trainPictureSfx[2][i]=trainPicture[2][i].substr(trainPicture[2][i].length-4,4);
+	if((trainPictureSfx[2][i]==".bmp"||trainPictureSfx[2][i]==".BMP")&&isWin&&ie&&!isIE10){
+		bmpChroma=bmpChroma1;
+	}else{
+		bmpChroma=bmpChroma0;
+		if(trainPictureSfx[2][i]==".gif"||trainPictureSfx[2][i]==".GIF"||trainPictureSfx[2][i]==".png"||trainPictureSfx[2][i]==".PNG"){
+			void(0);
+		}else if(anotherTrain){
+			suffixCheck=false;
+		}
+	}
+	car2String="<img"+bmpChroma+" src='"+trainFolderName+trainPicture[2][i]+"' name='ec"+i+"' id='ec"+i+"'>";
+	if(trainLocoHead[2]&&i==cars2Length-1){
+		car2StringD="<img"+bmpChroma+" src='"+trainFolderName+trainPicture[2][i]+"' name='ec"+i+"' id='ec"+i+"'>";
+	}else{
+		car2StringD="<img"+bmpChroma+" src='"+trainFolderName+trainPictureHead[2][i]+doorOpenCode2+trainPictureSfx[2][i]+"' name='ec"+i+"' id='ec"+i+"'>";
+	}
+	train2String+=car2String;
+	train2StringD+=car2StringD;
+}
+train2Obj=train2String+endString;
+train2ObjD=train2StringD+endString;
+if(islandPFdoor){train2Obj=train2ObjD}
+//OtherTags----------------------------------------------
+imgtagStart="<img src='"+sceneFolderName;
+imgtagEnd="'>";
+ekiBtag=imgtagStart+stationBimgFile+imgtagEnd;
+ekiFtag=imgtagStart+stationFimgFile+imgtagEnd;
+tunnelTag=imgtagStart+tunnelImgFile+imgtagEnd;
+bridgeTag=imgtagStart+bridgeImgFile+"' name='bridgeImg' id='bridgeImg'>";
+crossingB1Tag=imgtagStart+crossImgFileB1+"' name='crossB1' id='crossB1'>";
+crossingB2Tag=imgtagStart+crossImgFileB1+"' name='crossB2' id='crossB2'>";
+crossingF1Tag=imgtagStart+crossImgFileF1+"' name='crossF1' id='crossF1'>";
+crossingF2Tag=imgtagStart+crossImgFileF1+"' name='crossF2' id='crossF2'>";
+chouenkeiTag=imgtagStart+vistaImgFile+imgtagEnd;
+tracksideObj1Tag=imgtagStart+tracksideObj1img+imgtagEnd;
+tracksideObj2Tag=imgtagStart+tracksideObj2img+imgtagEnd;
+tableTagStart="<table border=0 cellpadding=0 cellspacing=0 background='"+sceneFolderName;
+tableTagMid="'><tr><td><img src='"+controlFolderName+"dum.gif' ";
+tableTagEnd="><"+"/td><"+"/tr><"+"/table>";
+sceneOverallHeight=sceneHeightOffset+280;
+checkPixelForTrolley=poleAndWireImgWidth;
+while(checkPixelForTrolley<=500){
+	checkPixelForTrolley+=poleAndWireImgWidth;
+}
+trolleyDivMaxWidth=4000+checkPixelForTrolley;
+checkPixelForRail=railImgWidth;
+while(checkPixelForRail<=500){
+	checkPixelForRail+=railImgWidth;
+}
+railDivMaxWidth=4000+checkPixelForRail;
+if((ie&&isWin)||isIE10){
+railTag=startString+"<img src='"+sceneFolderName+railImgFile+"'>";
+hashiraTag=startString+"<img src='"+sceneFolderName+poleImgFileB+"'>";
+hashiraSTag=startString+"<img src='"+sceneFolderName+poleImgFileF+"'>";
+kasenTag=startString+"<img src='"+sceneFolderName+wireImgFile+"'>";
+chukinkeiTag=startString+"<img src='"+sceneFolderName+nearBackgroundImgFile+"'>";
+chukeiTag=startString+"<img src='"+sceneFolderName+midBackgroundImgFile+"'>";
+enkeiTag=startString+"<img src='"+sceneFolderName+farBackgroundImgFile+"'>";
+railTagChecker=railImgWidth;hashiraSTagChecker=poleAndWireImgWidth;kasenTagChecker=poleAndWireImgWidth;
+chukinkeiTagChecker=nearBackgroundImgWidth;chukeiTagChecker=midBackgroundImgWidth;enkeiTagChecker=farBackgroundImgWidth;
+while(chukinkeiTagChecker<=9700){
+	chukinkeiTag+="<img src='"+sceneFolderName+nearBackgroundImgFile+"'>";
+	chukinkeiTagChecker+=nearBackgroundImgWidth;
+}
+while(chukeiTagChecker<=4900){
+	chukeiTag+="<img src='"+sceneFolderName+midBackgroundImgFile+"'>";
+	chukeiTagChecker+=midBackgroundImgWidth;
+}
+while(enkeiTagChecker<=3300){
+	enkeiTag+="<img src='"+sceneFolderName+farBackgroundImgFile+"'>";
+	enkeiTagChecker+=farBackgroundImgWidth;
+}
+while(railTagChecker<=railDivMaxWidth){
+	railTag+="<img src='"+sceneFolderName+railImgFile+"'>";
+	railTagChecker+=railImgWidth;
+}
+while(hashiraSTagChecker<=2400){
+	hashiraSTag+="<img src='"+sceneFolderName+poleImgFileF+"'>";
+	hashiraSTagChecker+=poleAndWireImgWidth;
+}
+while(kasenTagChecker<=trolleyDivMaxWidth){
+	hashiraTag+="<img src='"+sceneFolderName+poleImgFileB+"'>";
+	kasenTag+="<img src='"+sceneFolderName+wireImgFile+"'>";
+	kasenTagChecker+=poleAndWireImgWidth;
+}
+railTag+=endString;hashiraTag+=endString;kasenTag+=endString;
+if(poleFOK){hashiraSTag+=endString;}else{hashiraSTag=""}
+chukinkeiTag+=endString;chukeiTag+=endString;enkeiTag+=endString;
+}else{
+railWH="width="+railDivMaxWidth+" height=130";
+if(!oldrail){railWH="width="+railDivMaxWidth+" height=9"}
+hashiraWH="width="+trolleyDivMaxWidth+" height=130";
+hashiraSWH="width=2400 height=130";
+kasenWH="width="+trolleyDivMaxWidth+" height=50";
+railTag=tableTagStart+railImgFile+tableTagMid+railWH+tableTagEnd;
+hashiraTag=tableTagStart+poleImgFileB+tableTagMid+hashiraWH+tableTagEnd;
+if(poleFOK){hashiraSTag=tableTagStart+poleImgFileF+tableTagMid+hashiraSWH+tableTagEnd};
+kasenTag=tableTagStart+wireImgFile+tableTagMid+kasenWH+tableTagEnd;
+chukinkeiWH="width=9700 height=130";
+chukeiWH="width=4900 height=130";
+enkeiWH="width=3300 height=130";
+chukinkeiTag=tableTagStart+nearBackgroundImgFile+tableTagMid+chukinkeiWH+tableTagEnd;
+chukeiTag=tableTagStart+midBackgroundImgFile+tableTagMid+chukeiWH+tableTagEnd;
+enkeiTag=tableTagStart+farBackgroundImgFile+tableTagMid+enkeiWH+tableTagEnd;
+}
+startBlackTag="<div id='startblack' style='position:absolute;left:0px;top:0px;visibility:visible;width:1600;height:"+sceneOverallHeight+";clip:rect(0px,1600px,"+sceneOverallHeight+"px,0px);background-color:#000000;filter:Alpha(opacity=0,finishOpacity=60,style=1,startX=40,finishX=0,startY=0,finishY=0);z-index:1'><br><"+"/div>";
+dumSpace="<table border=0 cellpadding=0 cellspacing=0><tr><td><img src='"+controlFolderName+"dum.gif' width=2 height="+sceneOverallHeight+"><"+"/td><"+"/tr><"+"/table>";
+noDhtml="<p align=center>If DynamicHTML-enabled web-browser, trains run here!<"+"/p>";
+signalTag=new Array();
+for(i=1;i<5;i++){signalTag[i]="<img src='"+sceneFolderName+signalFileNameHead+"G.gif' name='sig"+i+"' id='sig"+i+"'>";}
+doorIndTag="<img src='"+controlFolderName+"indicator_dooropen.gif' name='tobiraInd' id='tobiraInd'>";
+glassOpaX1="";glassOpaX2="";
+if(glassOpacity[1]>0&&glassOpacity[1]<100){
+	if(isIE10||nn6){
+		glassOpaX1=";opacity:"+(glassOpacity[1]/100)+"";
+	}else{
+		glassOpaX1=";filter:Alpha(opacity="+glassOpacity[1]+")";
+	}
+}
+if(glassOpacity[2]>0&&glassOpacity[2]<100){
+	if(isIE10||nn6){
+		glassOpaX2=";opacity:"+(glassOpacity[2]/100)+"";
+	}else{
+		glassOpaX2=";filter:Alpha(opacity="+glassOpacity[2]+")";
+	}
+}
+glass1Div="<div id='windowglass1' style='position:absolute;left:400px;top:70px;visibility:hidden;z-index:41"+glassOpaX1+"'><img src='"+trainFolderName+glassFile[1]+"'></"+"div>";
+glass2Div="<div id='windowglass2' style='position:absolute;left:400px;top:70px;visibility:hidden;z-index:31"+glassOpaX2+"'><img src='"+trainFolderName+glassFile[2]+"'></"+"div>";
+areaXtag="<div id='areaX1' style='position:absolute;left:0px;top:130px;visibility:hidden;width:1700;height:12;clip:rect(0px,1700px,12px,0px);layer-background-color:#ff3377;background-color:#ff3377;z-index:64'><br><"+"/div><div id='areaX2' style='position:absolute;left:0px;top:130px;visibility:hidden;width:1700;height:12;clip:rect(0px,1700px,12px,0px);layer-background-color:#ff9900;background-color:#ff9900;z-index:65'><br><"+"/div>";
+//Preload--------------------------------
+if(dhtmlOK){
+	dumdum=new Image();dumdum.src=controlFolderName+"dum.gif";
+	if(saveOK){svimg1=new Image();svimg1.src=controlFolderName+"btn_delete.gif";}
+	if(keycontrolOK){
+		keyimg1=new Image();keyimg1.src=controlFolderName+"btn_keycontrol.gif";
+		keyimg2=new Image();keyimg2.src=controlFolderName+keyguidePictureM01;
+	}
+	for(i=1;i<carsLength;i++){
+		carsImgArray[i]=new Image();
+		carsImgArray[i].src=trainFolderName+trainPicture[1][i];
+		if(doorHandling[1]&&!islandPFdoor){
+			if(trainLocoHead[1]&&i==1){
+				void(0);
+			}else{
+				carsImgArrayD[i]=new Image();
+				carsImgArrayD[i].src=trainFolderName+trainPictureHead[1][i]+doorOpenCode+trainPictureSfx[1][i];
+			}
+		}
+		if(airResistanceBrakeOK){
+			carsImgArrayAR[i]=new Image();
+			carsImgArrayAR[i].src=trainFolderName+trainPictureHead[1][i]+airResistanceCode+trainPictureSfx[1][i];
+		}
+	}
+	if(anotherTrain){
+		for(i=1;i<cars2Length;i++){
+			if(islandPFdoor){
+				cars2ImgArrayD[i]=new Image();
+				cars2ImgArrayD[i].src=trainFolderName+trainPictureHead[2][i]+doorOpenCode2+trainPictureSfx[2][i];
+			}
+			if((doorHandling[2]&&islandPFdoor)||!islandPFdoor){
+				cars2ImgArray[i]=new Image();
+				cars2ImgArray[i].src=trainFolderName+trainPicture[2][i];
+			}
+		}
+		if(glassOK[2]||glassPngOK[2]){
+			glassImage2=new Image();glassImage2.src=trainFolderName+glassFile[2];
+		}
+	}
+	if(glassOK[1]||glassPngOK[1]){
+		glassImage1=new Image();glassImage1.src=trainFolderName+glassFile[1];
+	}
+	if(doorHandling[1]){
+		doorIndImg0=new Image();doorIndImg0.src=controlFolderName+"indicator_dooropen.gif";
+		doorIndImg1=new Image();doorIndImg1.src=controlFolderName+"indicator_doorclose.gif";
+	}
+	if(crossingOK){
+		fk1=new Image();fk1.src=sceneFolderName+crossImgFileB1;
+		fk2=new Image();fk2.src=sceneFolderName+crossImgFileF1;
+		if(crossMoveFlag){
+			fk3=new Image();fk3.src=sceneFolderName+crossImgFileB0;
+			fk4=new Image();fk4.src=sceneFolderName+crossImgFileF0;
+		}
+	}
+	if(signalOK){
+		sg1=new Image();sg1.src=sceneFolderName+signalFileNameHead+"G.gif";
+		sg2=new Image();sg2.src=sceneFolderName+signalFileNameHead+"R.gif";
+	}
+	PFimageB=new Image();PFimageB.src=sceneFolderName+stationBimgFile;
+	PFimageF=new Image();PFimageF.src=sceneFolderName+stationFimgFile;
+	if(electrified){
+		hashiraImageB=new Image();hashiraImageB.src=sceneFolderName+poleImgFileB;
+		if(poleFOK){hashiraImageF=new Image();hashiraImageF.src=sceneFolderName+poleImgFileF};
+		if(!oldwire){kasenImage=new Image();kasenImage.src=sceneFolderName+wireImgFile};
+	}
+	railImage=new Image();railImage.src=sceneFolderName+railImgFile;
+	choenkeiImage=new Image();choenkeiImage.src=sceneFolderName+vistaImgFile;
+	enkeiImage=new Image();enkeiImage.src=sceneFolderName+farBackgroundImgFile;
+	chukeiImage=new Image();chukeiImage.src=sceneFolderName+midBackgroundImgFile;
+	if(nearBackgroundOK){chukinkeiImage=new Image();chukinkeiImage.src=sceneFolderName+nearBackgroundImgFile;}
+	if(tunnelOK){tunnelImage=new Image();tunnelImage.src=sceneFolderName+tunnelImgFile};
+	if(bridgeOK){
+		bridgeImage=new Image();bridgeImage.src=sceneFolderName+bridgeImgFile;
+		if(doubleDistance){bridgeImage2=new Image();bridgeImage2.src=sceneFolderName+bridgeImgFile2;}
+	}
+	if(tracksideObj1OK){tracksideObj1Image=new Image();tracksideObj1Image.src=sceneFolderName+tracksideObj1img;}
+	if(tracksideObj2OK){tracksideObj2Image=new Image();tracksideObj2Image.src=sceneFolderName+tracksideObj2img;}
+	teimokuImage=new Image();teimokuImage.src=controlFolderName+stopPositionPict;
+}
+//LoadingIndicator-------------------------------------------------
+loadingRed=true;loadingRedCount=0;;
+function loadingLight(){
+	if(loadingRed){
+		if(loadingRedCount>3){
+			layerBgColor('loading','#ff0000');
+		}else{
+			layerBgColor('loading','#222222');
+		}
+		loadingRedCount++;
+		if(loadingRedCount>7){loadingRedCount=0};
+		setTimeout('loadingLight()',140);
+	}else{
+		layerBgColor('loading','#00dd99');
+	}
+}
+//Clip---------------------------------------------------
+function overflowHideMdelay(){setTimeout('overflowHideM()',500);}
+function overflowHideM(){
+	widthCheck();
+	sceneShowAllPixels=windowwidthpx;
+	if(sceneShowAllPixels<610){sceneShowAllPixels=610}//M01
+	if(nn4){
+		document.layers['tetsudou'].clip.height=sceneOverallHeight;
+		document.layers['tetsudou'].clip.right=sceneShowAllPixels;
+	}
+	if(nn6){document.getElementById('tetsudou').style.clip="rect(0px,"+sceneShowAllPixels+"px,"+sceneOverallHeight+"px,0px)";}
+	if(ie){
+		document.all('tetsudou').style.width=sceneShowAllPixels;
+		document.all('tetsudou').style.height=sceneOverallHeight;
+		document.all('tetsudou').style.overflow="hidden";
+	}
+}
+//Preset----------------------------------------------------
+rightsmes="Opaku\'s Train Kit".fontcolor('#9999ff')+" M01 ver.4.5".fontcolor('#99999f');
+localdelay=2000;if(onTheWeb){localdelay=10}
+function preset(){if(dhtmlOK){setTimeout('preset2()',localdelay);}}
+function preset2(){
+	loadingRed=false;
+	if(suffixCheck){
+		mousepreset();
+		layerChange('now',rightsmes);
+		setTimeout('inframepreset()',1200);
+	}else{
+		alert('扱えない形式の画像が指定されています。');
+	}
+}
+inframeflag=(self.name=="trainRun");
+function inframepreset(){
+	if(inframeflag){sceneMoveY(0);}
+	presetdelay();
+}
+function imgpreset(){
+	if(saveOK){imgChange('kirokukesu',svimg1.src,'shoukyo');}
+	if(keycontrolOK){
+		imgChange('keynyuryoku',keyimg1.src,'keybtn');
+		imgChange('keyhaichi',keyimg2.src,'keyguide');
+	}
+}
+var fobj;
+function presetdelay(){
+	if(keepRight){
+		layerZindex('signal1',15);//50 Left
+		layerZindex('signal2',16);//51
+		layerZindex('signal3',17);//52
+		layerZindex('signal4',18);//53
+		layerZindex('densha',32);//42
+		layerZindex('aero',33);//43
+		layerZindex('densha2',44);//32
+		layerZindex('tunnel',29);//37
+		if(glassOK[1]||glassPngOK[1]){layerZindex('windowglass1',31)}//41
+		if((glassOK[2]||glassPngOK[2])&&anotherTrain){layerZindex('windowglass2',43)}//31
+	}
+	if(!keycontrolOK){
+		layerMoveY('shoukyo',225+sceneHeightOffset);
+	}else{
+		layerMoveY('shoukyo',200+sceneHeightOffset);
+	}
+	imgpreset();
+	if(testmode){testPreset()}
+	if(nn4){//Netscape4 anti-bug
+		layerChange('densha',trainObj);
+		if(airResistanceBrakeOK){layerChange('aero',trainObjAR);}
+		if(anotherTrain){layerChange('densha2',train2Obj);}
+		if(islandPF){
+			layerChange('eki',ekiBtag);
+		}else{
+			layerChange('ekiOp',ekiBtag);
+		}
+		if(doorHandling[1]){layerChange('doorInd',doorIndTag);}
+		layerChange('ekisha',ekiFtag);
+		if(tunnelOK){layerChange('tunnel',tunnelTag);}
+		if(bridgeOK){layerChange('bridge',bridgeTag);}
+		layerChange('chouenkei',chouenkeiTag);
+		if(electrified){
+			layerChange('hashira',hashiraTag);
+			if(!oldwire){layerChange('kasen',kasenTag)};
+			if(poleFOK){layerChange('hashiraS',hashiraSTag)};
+		}
+		layerChange('chukei',chukeiTag);
+		layerChange('enkei',enkeiTag);
+		layerChange('senro',railTag);
+		if(crossingOK){
+			layerChange('crossingF1',crossingF1Tag);
+			layerChange('crossingF2',crossingF2Tag);
+			layerChange('crossingB1',crossingB1Tag);
+			layerChange('crossingB2',crossingB2Tag);
+		}
+		if(signalOK){
+			layerChange('signal1',signalTag[1]);
+			layerChange('signal2',signalTag[2]);
+			layerChange('signal3',signalTag[3]);
+			layerChange('signal4',signalTag[4]);
+		}
+		if(tracksideObj1OK){layerChange('tracksideObj1',tracksideObj1Tag)};
+		if(tracksideObj2OK){layerChange('tracksideObj2',tracksideObj2Tag)};
+		if(nearBackgroundOK){layerChange('chukinkei',chukinkeiTag)};
+	}
+	layerHide('now');
+	fobj=document.forms['infobar'];
+	if(nn4){fobj=document.layers['tetsudou'].document.layers['infos'].document.forms['infobar'];}
+	if(saveOK){
+		getGap();layerShow('shoukyo');
+	}else{
+		fobj.elements['record'].value="";
+	};
+	layerShow('chouenkei');
+	layerShow('enkei');
+	layerShow('chukei');
+	if(nearBackgroundOK){layerShow('chukinkei')};
+	if(!oldrail){layerMoveY('senro',121)};
+	layerShow('senro');
+	if(electrified){
+		layerShow('hashira');
+		if(poleFOK){layerShow('hashiraS')};
+		layerMoveY('kasen',51-pantographheightpx+20);
+		if(!oldwire){layerShow('kasen')};
+	}
+	if(crossingOK){
+		layerMoveX('crossingB1',crossing1offset-2000);
+		layerShow('crossingB1');
+		layerMoveX('crossingF1',crossing1offset-2000);
+		layerShow('crossingF1');
+		layerMoveX('crossingB2',crossing2offset-2000);
+		layerShow('crossingB2');
+		layerMoveX('crossingF2',crossing2offset-2000);
+		layerShow('crossingF2');
+	}
+	if(tunnelOK){
+		layerMoveX('tunnel',tunneloffset-2000);
+		layerShow('tunnel');
+	}
+	if(bridgeOK){
+		layerMoveX('bridge',bridgeoffset-2000);
+		layerShow('bridge');
+	}
+	if(signalOK){
+		layerMoveX('signal1',signal1offset-2000);layerShow('signal1');
+		layerMoveX('signal2',signal2offset-2000);layerShow('signal2');
+		layerMoveX('signal3',signal3offset-2000);layerShow('signal3');
+		layerMoveX('signal4',signal4offset-2000);layerShow('signal4');
+	}
+	if(tracksideObj1OK){
+		layerMoveX('tracksideObj1',tracksideObj1offset-2000);
+		layerShow('tracksideObj1');
+	}
+	if(tracksideObj2OK){
+		layerMoveX('tracksideObj2',tracksideObj2offset-2000);
+		layerShow('tracksideObj2');
+	}
+	ekipresetPos=400-stopPositionOffset;
+	layerMoveX('eki',ekipresetPos);layerMoveX('ekiOp',ekipresetPos);
+	layerMoveX('ekisha',ekipresetPos);
+	if(islandPF){layerShow('eki')}else{layerShow('ekiOp')};
+	layerShow('ekisha');
+	trainSetYpixel=121-trainHeightPixel;
+	layerMoveY('densha',trainSetYpixel);layerMoveY('densha2',trainSetYpixel);layerMoveY('aero',trainSetYpixel);
+	if(glassOK[1]||glassPngOK[1]){
+		layerMoveY('windowglass1',trainSetYpixel);
+		layerMoveX('windowglass1',400+glassOffset);
+	};
+	if((glassOK[2]||glassPngOK[2])&&anotherTrain){layerMoveY('windowglass2',trainSetYpixel)};
+	layerMoveY('keikibanOn',142+sceneHeightOffset);
+	layerMoveY('mascon',142+sceneHeightOffset);
+	layerMoveY('sousa',147+sceneHeightOffset);
+	layerMoveY('zengo',151+sceneHeightOffset);
+	layerMoveY('keikibanOff',142+sceneHeightOffset);
+	layerMoveY('shori',225+sceneHeightOffset);
+	layerMoveY('shoriOn',225+sceneHeightOffset);
+	layerMoveY('programSwitch',225+sceneHeightOffset);
+	layerMoveY('programGo',225+sceneHeightOffset);
+	layerMoveY('modedisplay',252+sceneHeightOffset);
+	layerMoveY('keybtn',225+sceneHeightOffset);
+	layerMoveY('keyOn',225+sceneHeightOffset);
+	if(lowerInfo){layerMoveY('infos',infosTopPos)};
+	if(doorHandling[1]){layerMoveY('doorInd',142+sceneHeightOffset);layerShow('doorInd')}
+	layerShow('densha');
+	layerShow('infos');
+	formColorChange('infobar','total',infoColorA,infoBaseColor);
+	formColorChange('infobar','speedmeter',infoColorA,infoBaseColor);
+	formColorChange('infobar','gap',infoColorA,infoBaseColor);
+	formColorChange('infobar','record',infoColorA,infoBaseColor);
+	if(nn6){
+		document.getElementById('total').style.borderColor=infoBorderColor;
+		document.getElementById('speedmeter').style.borderColor=infoBorderColor;
+		document.getElementById('gap').style.borderColor=infoBorderColor;
+		document.getElementById('record').style.borderColor=infoBorderColor;
+	}
+	layerShow('keikibanOn');
+	layerShow('shori');layerShow('shoriOn');
+	if(panelbackOK){layerBgColor('panelback',panelbackcolor);layerShow('panelback')};
+	layerShow('zengo');layerShow('mascon');
+	layerShow('sousa');
+	layerShow('keikibanOff');
+	layerShow('protector');
+	layerShow('programSwitch');
+	if(!nn4&&loadingBlack){
+		layerHide('startblack');
+		if(ie6&&isWin){document.all('startblack').filters['alpha'].enabled=false;}
+	};
+	layerHide('loading');
+	if(glassOK[1]||glassPngOK[1]){layerShow('windowglass1')};
+	if(testmode&&ie){
+		layerMoveX('areaX1',-2000);layerMoveX('areaX2',14000);
+		layerShow('areaX1');layerShow('areaX2');
+	};
+	imgChange('teimoku',teimokuImage.src,'tomare');
+	if(top.frames.length==0&&!textUnderTheRail&&loadedToFocus){self.focus()}
+	if(keycontrolOK){layerShow('keybtn')};
+	if(keyOnStart&&keycontrolOK){keyControl();layerShow('keyguide')}
+//	if(!testmode){
+		overflowHideM();
+		window.onresize=overflowHideMdelay;
+		layerShow('curtain');
+//	};
+}
+//ScrollingLimit----------------------------------------------
+yyy=0;
+function yscrollCheck(){
+	if(nn4||nn6){yyy=window.pageYOffset};
+	//if(nn6){yyy=window.scrollY};
+	if(ie){yyy=document.body.scrollTop};
+}
+//Start----------------------------------------------------
+runrunflag=false;//true=running now
+traininterval=100;
+function startTrain(){if(dhtmlOK){
+	if(!runrunflag){
+		layerShow('programGo');
+		runrunflag=true;
+		layerHide('keikibanOff');
+		layerHide('keyguide');
+		traintimer=setInterval('trainControl()',traininterval);;
+	}
+}}
+function stopTrain(){if(dhtmlOK){
+	if(runrunflag){
+		clearInterval(traintimer);
+		runrunflag=false;
+		safetytimer=0;
+		layerShow('keikibanOff');
+		layerHide('programGo');
+		if(keyflag&&keycontrolOK){layerShow('keyguide')};
+		delaychecktimer=0;delayratio=1;
+	}
+}}
+function programOnOff(){if(dhtmlOK){
+	if(runrunflag==true){
+		stopTrain();
+	}else{
+		startTrain();
+	}
+}}
+//Doors----------------------------------------------------
+doorCountOK=false;//v3.0
+if(doorHandling[1]){doorCountOK=true;};
+doorCount=70;//M01
+function doorCountDown(){
+	if(doorCountOK){
+		doorCount++;
+		if(doorCount>(doorOpenSecond*timespersecond)){
+			doorCountOK=false;
+			doorCloseNow=true;
+			imgChange('tobiraInd',doorIndImg1.src,'doorInd');
+			if(!islandPFdoor){
+				for(i=1;i<=trainPicture[1].length-1;i++){
+					train1doorNum="ed"+i;
+					train1doorClosed=trainFolderName+trainPicture[1][i];
+					imgChange(train1doorNum,train1doorClosed,'densha');
+				}
+			}
+		}
+	}
+}
+function doorCountReset(){
+	doorCount=0;
+	anotherAccel=0;
+	anotherRealSpeed=0;
+	anotherSpeed=0;
+	anotherRun=0;
+}
+function doorCountStart(){
+	if(doorHandling[1]&&doorCount==0){
+		doorCountOK=true;
+		doorCloseNow=false;
+		setTimeout('doorOpen()',1500);
+	}
+}
+function doorOpen(){
+	imgChange('tobiraInd',doorIndImg0.src,'doorInd');
+	if(!islandPFdoor){
+		for(i=1;i<=trainPicture[1].length-1;i++){
+			train1doorNum="ed"+i;
+			train1doorOpened=trainFolderName+trainPictureHead[1][i]+doorOpenCode+trainPictureSfx[1][i];
+			if(trainLocoHead[1]&&i==1){
+				void(0);
+			}else{
+				imgChange(train1doorNum,train1doorOpened,'densha');
+			}
+		}
+	}
+	if(doorHandling[2]&&anotherTrainflag&&anotherTrain){setTimeout('anotherTrainGoGo()',2000);}
+}
+function anotherTrainGoGo(){
+	for(i=1;i<=trainPicture[2].length-1;i++){
+		train2doorNum="ec"+i;
+		train2doorClosed=trainFolderName+trainPicture[2][i];
+		imgChange(train2doorNum,train2doorClosed,'densha2');
+	}
+	setTimeout('anotherAccel=fullpower',1500);
+}
+//Run----------------------------------------------------
+timespersecond=10;
+direction=0;//0=foward(left),1=back(right)
+kinkeipos=-2000;enkeipos=0;
+potentialratio=1;//v1.2
+accelresistance=0;//v1.2
+accel=0;
+realspeed=0;
+speed=0;
+totalrun=0;
+ekimade=16000;zureflag=0;
+safetytimer=0;safetylimit=200;
+anotherTrainflag=false;//v2.0
+anotherTrainCount=-1;
+anotherAccel=0;
+anotherRealSpeed=0;
+anotherSpeed=0;
+anotherRun=0;
+pseudoTrolleyPos=-2000;
+pseudoRailPos=-2000;
+function trainControl(){
+	accelresistance=(realspeed/maxpotential)*(realspeed/maxpotential)//v1.2
+	potentialratio=(1-accelresistance);//v1.2
+	if(potentialratio<0){potentialratio=0};//v1.2
+	if(potentialratio>1){potentialratio=1};//v1.2
+	if(accel>0){accel=accelnow*potentialratio}else{accel=accelnow};//v1.2
+	realspeed+=(accel/timespersecond)*delayratio;
+	if(realspeed<0){realspeed=0};if(realspeed>speedlimit){realspeed=speedlimit};
+	speed=(realspeed/0.36/timespersecond)*delayratio;
+	if(direction==0){
+		kinkeipos+=speed;
+		pseudoTrolleyPos+=speed;if(pseudoTrolleyPos>-2000){pseudoTrolleyPos-=checkPixelForTrolley;}
+		pseudoRailPos+=speed;if(pseudoRailPos>-2000){pseudoRailPos-=checkPixelForRail;}
+	}else{
+		kinkeipos-=speed;
+		pseudoTrolleyPos-=speed;if(pseudoTrolleyPos<-2000-checkPixelForTrolley){pseudoTrolleyPos+=checkPixelForTrolley;}
+		pseudoRailPos-=speed;if(pseudoRailPos<-2000-checkPixelForRail){pseudoRailPos+=checkPixelForRail;}
+	};
+	runLR();
+	ekipos=Math.round(kinkeipos+2000+ekipresetPos);
+	tunnelpos=Math.round(kinkeipos+tunneloffset);
+	bridgepos=Math.round(kinkeipos+bridgeoffset);
+	crossing1pos=Math.round(kinkeipos+crossing1offset);
+	crossing2pos=Math.round(kinkeipos+crossing2offset);
+	signal1pos=Math.round(kinkeipos+signal1offset);
+	signal2pos=Math.round(kinkeipos+signal2offset);
+	signal3pos=Math.round(kinkeipos+signal3offset);
+	signal4pos=Math.round(kinkeipos+signal4offset);
+	tracksideObj1pos=Math.round(kinkeipos+tracksideObj1offset);
+	tracksideObj2pos=Math.round(kinkeipos+tracksideObj2offset);
+	hashiraSpos=Math.round(kinkeipos+2240);
+	stoplinepos=ekipos+stopPositionOffset;
+	chukinkeipos=Math.round(kinkeipos/2);
+	chukeipos=Math.round(kinkeipos/5);
+	enkeipos=Math.round(kinkeipos/10);
+	kinkeiposInt=Math.round(kinkeipos);
+	if(anotherTrain){
+		anotherRealSpeed+=(anotherAccel/timespersecond);
+		anotherSpeed=Math.round((anotherRealSpeed/0.36/timespersecond)*delayratio);
+		anotherRun+=anotherSpeed;
+		if(anotherRun>2000){
+			anotherRun=2000;layerHide('densha2');
+			if(glassOK[2]||glassPngOK[2]){layerHide('windowglass2');}//
+		};
+		layerMoveX('densha2',ekipos+stopPositionOffset+anotherTrainStopOffset+anotherRun);
+		if(glassOK[2]||glassPngOK[2]){layerMoveX('windowglass2',ekipos+stopPositionOffset+anotherTrainStopOffset+anotherRun);}
+	}
+	pseudoTrolleyPosInt=Math.round(pseudoTrolleyPos);
+	pseudoRailPosInt=Math.round(pseudoRailPos);
+	layerMoveX('hashira',pseudoTrolleyPosInt);
+	layerMoveX('kasen',pseudoTrolleyPosInt);
+	layerMoveX('senro',pseudoRailPosInt);
+	layerMoveX('eki',ekipos);layerMoveX('ekiOp',ekipos);
+	layerMoveX('ekisha',ekipos);
+	if(tunnelOK){layerMoveX('tunnel',tunnelpos);}
+	if(bridgeOK){layerMoveX('bridge',bridgepos);}
+	if(crossingOK){
+		layerMoveX('crossingF1',crossing1pos);
+		layerMoveX('crossingB1',crossing1pos);
+		layerMoveX('crossingF2',crossing2pos);
+		layerMoveX('crossingB2',crossing2pos);
+		if(crossMoveFlag){crossCheck();}
+	}
+	if(tracksideObj1OK){layerMoveX('tracksideObj1',tracksideObj1pos)};
+	if(tracksideObj2OK){layerMoveX('tracksideObj2',tracksideObj2pos)};
+	layerMoveX('hashiraS',hashiraSpos);
+	layerMoveX('tomare',stoplinepos);
+	layerMoveX('chukinkei',chukinkeipos);
+	layerMoveX('chukei',chukeipos);
+	layerMoveX('enkei',enkeipos);
+	if(signalOK){
+		layerMoveX('signal1',signal1pos);
+		layerMoveX('signal2',signal2pos);
+		layerMoveX('signal3',signal3pos);
+		layerMoveX('signal4',signal4pos);
+		if(signal1pos>400){signalChange('1','R')};
+		if(signal2pos>400){signalChange('2','R')};
+		if(signal3pos>400){signalChange('3','R')};
+		if(signal4pos>400){signalChange('4','R')};
+	}
+	if(!doorCountOK){
+		if(speed==0){
+			safetytimer++;
+			if(safetytimer>safetylimit){
+				stopTrain();
+			}
+		}else{
+			safetytimer=0;
+		}
+	}
+	if(speed>2)zureflag=1;
+	infodisplay();
+	//yscrollCheck();scrollTo(0,yyy);
+	if(antidelay){
+		if(delaychecktimer==1){
+			delaychecker(0)
+		}
+		if(delaychecktimer>=(timespersecond/2)+1){
+			delaychecker(1)
+			delaychecktimer=0;
+		}
+		delaychecktimer++;
+	}else{
+		delayratio=1;
+	}
+	if(testmode){
+		testcheck2();
+		if(ie){
+			layerMoveX('areaX1',Math.round(kinkeipos));
+			layerMoveX('areaX2',Math.round(kinkeipos)+16000);
+		}
+	}
+	if(airResistanceBrakeOK){aeroBrakeControl()}
+	doorCountDown();
+}
+accelnow=0;
+function accelset(q){accelnow=q;}
+//Aero--------------------------------------------------
+aeroOn=false;
+function aeroBrakeControl(){
+	if(emergentOn&&realspeed>airResistanceSpeed){
+		if(!aeroOn){layerShow('aero');layerHide('densha');aeroOn=true;}
+	}else{
+		if(aeroOn){layerShow('densha');layerHide('aero');aeroOn=false;}
+	}
+}
+//Scene-------------------------------------------------
+stationOnFlag=true;
+function runLR(){
+	if(kinkeipos>-100||kinkeipos<-16100){
+		doorCountReset();
+		if(doubleDistance){
+			stationOnFlag=!stationOnFlag;
+			if(stationOnFlag==true){
+				if(islandPF){layerShow('eki')}else{layerShow('ekiOp')};
+				layerShow('ekisha');
+				if(tunnelOK){layerShow('tunnel');}
+				layerShow('tomare');recordflag=1;
+				if(bridgeOK){imgChange('bridgeImg',sceneFolderName+bridgeImgFile,'bridge');}
+				anotherTrainCount++;
+				if(anotherTrainCount>1){anotherTrainCount=0}
+				if(anotherTrainCount==0){anotherTrainflag=true}else{anotherTrainflag=false};
+			}else{
+				anotherTrainflag=false;
+				layerHide('eki');layerHide('ekisha');layerHide('ekiOp');
+				layerHide('tunnel');
+				layerHide('tomare');recordflag=0;
+				if(bridgeOK){imgChange('bridgeImg',sceneFolderName+bridgeImgFile2,'bridge');}
+			}
+		}else{
+			anotherTrainCount++;
+			if(anotherTrainCount>1){anotherTrainCount=0}
+			if(anotherTrainCount==0){anotherTrainflag=true}else{anotherTrainflag=false};
+			layerShow('tomare');
+			recordflag=1;
+		}
+		if(kinkeipos>-100){
+			kinkeipos-=16000;
+			if(signalOK){
+				signalChange('1','G');signalChange('2','G');signalChange('3','G');signalChange('4','G');
+			}
+			if(anotherTrain){
+				if(anotherTrainflag){
+					if(islandPFdoor){
+						for(i=1;i<=trainPicture[2].length-1;i++){
+							train2doorNum="ec"+i;
+							train2doorOpened=trainFolderName+trainPictureHead[2][i]+doorOpenCode2+trainPictureSfx[2][i];
+							if(trainLocoHead[2]&&i==trainPicture[2].length-1){
+								void(0);
+							}else{
+								imgChange(train2doorNum,train2doorOpened,'densha2');
+							}
+						}
+					}
+					layerShow('densha2');
+					if(glassOK[2]||glassPngOK[2]){layerShow('windowglass2')}
+				}else{
+					layerHide('densha2');
+					if(glassOK[2]||glassPngOK[2]){layerHide('windowglass2')}
+				}
+			}
+		};
+		if(kinkeipos<-16100){kinkeipos+=16000}
+	}
+}
+//CheckDelay----------------------------------------------
+antidelay=true;
+function ji(){
+	ima=new Date();
+	toki=ima.getTime();
+}
+starttime=0;endtime=0;
+delaychecktimer=0;delayratio=1;
+function delaychecker(s){
+	if(s==0){
+		ji();
+		starttime=toki;
+	}else{
+		ji();
+		endtime=toki;
+		timelength=endtime-starttime;
+		delayratio=timelength/500;
+		if(testmode){testcheck();}
+	}
+}
+//Test-----------------------------------------------
+function testcheck(){
+	meterNum=Math.round((delayratio-1)*100);
+	meterStr=meterNum+"%遅延";if(meterNum<=0){meterStr="遅延なし"}
+	document.forms['testmeter'].elements['delaypercent'].value=meterStr;
+}
+function testcheck2(){
+	document.forms['testmeter'].elements['PosPos'].value=-(Math.round(kinkeipos))+400;
+	document.forms['testmeter'].elements['BackPosPos'].value=-(Math.round(kinkeipos));
+	document.forms['testmeter'].elements['PosPosEki'].value=ekipos-ekipresetPos;
+	accelmetervalue=Math.round(accel*100)/100;
+	if(realspeed==0||realspeed==speedlimit){accelmetervalue=0}
+	document.forms['testmeter'].elements['accelmeter'].value=accelmetervalue+" km/h/s";
+}
+function testPreset(){
+	EkiKmStr="駅間 1.6km";if(doubleDistance){EkiKmStr="駅間 3.2km"}
+	document.forms['testmeter'].elements['Eki2Eki'].value=EkiKmStr;
+}
+testform="<form onSubmit='return false' name='testmeter'><input type=text size='12' name='Eki2Eki' value='駅間距離'><input type=text size='22' name='BackPosPos' value='画面左端←背景座標'><input type=text size='22' name='PosPos' value='列車先端↑背景座標'><input type=text size='18' name='PosPosEki' value='列車位置(駅=0)'><br><input type=text size='18' name='accelmeter' value='加速度'><input type=text size='12' name='delaypercent' value='処理遅延率'><"+"/form>";
+testzone="<table border=1 cellpadding=5 cellspacing=0 bordercolor='#777777'><td>近景配置物制限区間<"+"/td><td bgcolor='#ff3377'>座標 0-1700<"+"/td><td bgcolor='#ff9900'>16000-17700<"+"/td><"+"/tr><"+"/tr><"+"/table><br>";
+//FormDisplay--------------------------------------------
+function infodisplay(){
+	fobj=document.forms['infobar'];
+	if(nn4){fobj=document.layers['tetsudou'].document.layers['infos'].document.forms['infobar']}
+	//speedmeter and odometer
+	totalrun+=speed;
+	if(byTheYard){
+		fobj.elements['speedmeter'].value=Math.round(realspeed*0.621371192)+"MPH";
+		totalinfo=(Math.round(totalrun*0.621371192/1000))/10;
+		fobj.elements['total'].value=totalinfo+"miles";
+	}else{
+		fobj.elements['speedmeter'].value=Math.round(realspeed)+"km/h";
+		totalinfo=(Math.round(totalrun/1000))/10;
+		fobj.elements['total'].value=totalinfo+"km";
+	}
+	//to station
+	if(stationOnFlag==true){
+		if(speed!=0){
+			if((ekipos>-(10000-ekipresetPos)&&ekipos<ekipresetPos&&!doubleDistance)||(ekipos<ekipresetPos&&doubleDistance)){
+				if(byTheYard){
+					ekimade=Math.round((ekipos-ekipresetPos)/10/0.9144);
+					fobj.elements['gap'].value="駅停車位置まで "+Math.abs(ekimade)+"yards";
+				}else{
+					ekimade=Math.round((ekipos-ekipresetPos)/10);
+					fobj.elements['gap'].value="駅停車位置まで "+Math.abs(ekimade)+"m";
+				}
+			}else{
+				fobj.elements['gap'].value="";
+			}
+		}else{//stop offset
+			if(ekipos<(2000+ekipresetPos)&&ekipos>(ekipresetPos-1500)&&realspeed==0&&zureflag==1){
+				zure=(Math.round((ekipos-ekipresetPos)))/10;
+				zurecheck="m手前";if(zure>0){zurecheck="m超過"};
+				zuremes="停車位置から"+Math.abs(zure)+zurecheck;
+				if(zure==0){zuremes="停車位置ジャスト！"}
+				if(byTheYard){
+					zureM=Math.round((zure/0.9144)*10)/10;
+					zurecheckM="yards手前";if(zureM>0){zurecheckM="yards超過"};
+					zuremesM=Math.abs(zureM)+zurecheckM;
+					if(zureM==0){zuremesM="停車位置ジャスト！"};
+					fobj.elements['gap'].value=zuremesM;
+				}else{
+					fobj.elements['gap'].value=zuremes;
+				}
+				if(saveOK){setGap()};
+				//door check
+				if(zure<=doorOKoverPosition&&zure>=(-doorOKlessPosition)&&doorHandling[1]){
+					doorCountStart();
+				}else if(doorCount==0&&doorHandling[1]){
+					displaychange(13);
+				}
+			}
+		}
+	}else{
+		if(speed!=0){
+			if(ekipos>-(4000-ekipresetPos)){
+				if(byTheYard){
+					ekimade2=Math.round((ekipos-ekipresetPos)/10/0.9144);
+					fobj.elements['gap'].value="駅停車位置まで "+Math.abs(ekimade2-1750)+"yards";
+				}else{
+					ekimade2=Math.round((ekipos-ekipresetPos)/10);
+					fobj.elements['gap'].value="駅停車位置まで "+Math.abs(ekimade2-1600)+"m";
+				}
+			}else{
+				fobj.elements['gap'].value="";
+			}
+		}
+	}
+}
+//Control----------------------------------------------------
+function dirchange(){if(dhtmlOK){
+	if(speed==0){
+		if(direction==0){direction=1}else{direction=0};
+		if(direction==0){layerMoveY('zengo',151+sceneHeightOffset);}else{layerMoveY('zengo',167+sceneHeightOffset);}
+	}else{
+		dirmes="走行中です。";
+		if(realspeed<1){dirmes="完全に停止していません。";}
+		alert(dirmes);
+	}
+}}
+//v1.4
+notch=0;
+brake4=fullbrake;
+brake3=((fullbrake-powerOff)*b3ratio)+powerOff;
+brake2=((fullbrake-powerOff)*b2ratio)+powerOff;
+brake1=((fullbrake-powerOff)*b1ratio)+powerOff;
+power0=0;
+power1=fullpower*n1ratio;
+power2=fullpower;
+masconlimit1=Math.round(speedlimit*n1ratio);
+defaultspeedlimit=speedlimit;
+emergentOn=false;
+function gogoTrainBraking(s){
+	if(s==0){layerMoveY('mascon',142+sceneHeightOffset);accelset(emergentBrake);emergentOn=true;};
+	if(s==1){layerMoveY('mascon',155+sceneHeightOffset);accelset(brake4);emergentOn=false;};
+	if(s==2){layerMoveY('mascon',165+sceneHeightOffset);accelset(brake3);emergentOn=false;};
+	if(s==3){layerMoveY('mascon',175+sceneHeightOffset);accelset(brake2);emergentOn=false;};
+	if(s==4){layerMoveY('mascon',185+sceneHeightOffset);accelset(brake1);emergentOn=false;};
+	if(s==5){layerMoveY('mascon',197+sceneHeightOffset);accelset(powerOff);emergentOn=false;};
+	notch=s;
+}
+function gogoTrain(m){
+	if(doorCloseNow){
+		if(m>=0&&m<6){
+			gogoTrainBraking(m);
+		}else{
+			emergentOn=false;
+		}
+		if(m==6){
+			if(realspeed<masconlimit1){
+				speedlimit=masconlimit1;accelset(power1);
+			}else{
+				speedlimit=defaultspeedlimit;accelset(power0);
+			}
+			layerMoveY('mascon',209+sceneHeightOffset);
+			notch=6;
+		};
+		if(m==7){
+			speedlimit=defaultspeedlimit;
+			layerMoveY('mascon',219+sceneHeightOffset);
+			accelset(power2);
+			notch=7;
+		};
+	}else{
+		if(m>=0&&m<6){
+			gogoTrainBraking(m);
+		}else{
+			displaychange(12);
+		}
+	}
+}
+function modechange(h){if(dhtmlOK){
+	if(h==1||h==0){
+		timespersecond=10;traininterval=100;safetylimit=200;
+		if(h==0){
+			antidelay=true;shorilightpos=20;
+		}else{
+			antidelay=false;shorilightpos=105;
+		};
+	}else{
+		timespersecond=20;shorilightpos=178;traininterval=50;safetylimit=400;
+		antidelay=false;
+	}
+	layerMoveX('shoriOn',shorilightpos);
+	if(runrunflag==true){
+		stopTrain();
+		startTrain();
+	}
+}}
+//Cookie----------------------------------------
+zureold=2000;
+recordflag=0;
+if(saveDays<30){saveDays=30};if(saveDays>1000){saveDays=1000};
+function setGap(){if(saveOK){
+	cookietimelimit=new Date();
+	cookietimelimit.setTime(cookietimelimit.getTime()+(saveDays*86400000));//
+	zurezure=Math.abs(zure);
+	yourrecord=Math.min(zurezure,zureold);
+	if((zurezure<zureold)&&recordflag==1){
+		if(byTheYard){
+			zurezureM=Math.round(zurezure/0.9144*10)/10;
+			fobj.elements['record'].value="貴方の記録は "+zurezureM+"yards";
+		}else{
+			fobj.elements['record'].value="貴方の記録は "+zurezure+"m";
+		}
+		zuresave=((yourrecord*10)+10000);
+		zurecookie=cookieNameM01+"="+zuresave+";expires="+cookietimelimit.toGMTString();
+		document.cookie=zurecookie;
+		zureold=zurezure;
+	}
+	recordflag=0;
+}}
+cookienow="";
+cookieNameLength=cookieNameM01.length+1;
+gapflag=false;
+function checkcookienow(){
+	cookienow=document.cookie;
+	cookieNameNowNum=cookienow.indexOf(cookieNameM01);
+	gapflag=cookieNameNowNum!=-1;
+}
+function getGap(){if(saveOK){
+	checkcookienow();
+	if(gapflag){
+		gapstring=cookienow.substr(cookieNameNowNum+cookieNameLength,5);
+		gapnum=(parseInt(gapstring)-10000)/10;
+		if(byTheYard){
+			gapnumM=Math.round(gapnum/0.9144*10)/10;
+			fobj.elements['record'].value="貴方の記録は "+gapnumM+"yards";
+		}else{
+			fobj.elements['record'].value="貴方の記録は "+gapnum+"m";
+		}
+		zureold=gapnum;
+	}else{
+		fobj.elements['record'].value="記録表示";
+	}
+}}
+function clearGap(){
+	checkcookienow();
+	if(gapflag){
+		if(confirm('本当に記録を消してもいいですか？')){
+			zureold=2000;
+			fobj.elements['record'].value="記録消去";
+			byecookie=cookieNameM01+"=30000;expires=Fri, 31-Dec-1999 23:59:59 GMT";
+			document.cookie=byecookie;
+			recordflag=0;
+		}
+	}else{
+		alert('消去すべきデータがありません。\n一度も駅停車を試みていないか、記録消去済か、Cookieの記録が消えてしまったか、Cookieの設定が無効になっているか。以上のいずれかです。');
+	}
+}
+//Description----------------------------------------------------
+modestr=new Array();
+modestr[0]="";
+modestr[1]="スピード感は環境に影響されませんが、低速CPUや重いブラウザでは動作が粗くなります。";
+modestr[2]="精確な動作ですが、低速CPUや重いブラウザでは動作が遅くなります。";
+modestr[3]="更に精密な動作ですが、高速CPUまたは軽量ブラウザ必須です。";
+//4-6
+modestr[7]="貴方の駅停車位置とのズレ記録（Cookie）を消去します。";
+modestr[8]="クリックで運転プログラムの動作／停止を切替えます。";
+modestr[9]="キー操作がオンの時はキーボードで運転できます（テンキー以外は英数モード必須）。";
+modestr[12]="ドアがまだ開いています！";
+modestr[13]="その停車位置ではドア開閉できません。";
+function displaychange(m){
+	displaystr="<font color='"+infoColorB+"'>"+modestr[m]+"<"+"/font>";
+	layerChange('modedisplay',displaystr);
+}
+//Crossing-----------------------------------------------------
+cross1close=true;cross2close=true;
+function crossCheck(){
+	if(crossing1pos>410+trainLength[1]&&cross1close){crossControl(1)}
+	if(crossing2pos>410+trainLength[1]&&cross2close){crossControl(2)}
+	if(crossing1pos<-crossImgWidth&&!cross1close){crossControl(1)}
+	if(crossing2pos<-crossImgWidth&&!cross2close){crossControl(2)}
+}
+function crossControl(q){
+	if(q==1){
+		if(cross1close){
+			imgChange('crossF1',sceneFolderName+crossImgFileF0,'crossingF1');
+			imgChange('crossB1',sceneFolderName+crossImgFileB0,'crossingB1');
+			cross1close=false;
+		}else{
+			imgChange('crossF1',sceneFolderName+crossImgFileF1,'crossingF1');
+			imgChange('crossB1',sceneFolderName+crossImgFileB1,'crossingB1');
+			cross1close=true;
+		}
+	}else{
+		if(cross2close){
+			imgChange('crossF2',sceneFolderName+crossImgFileF0,'crossingF2');
+			imgChange('crossB2',sceneFolderName+crossImgFileB0,'crossingB2');
+			cross2close=false;
+		}else{
+			imgChange('crossF2',sceneFolderName+crossImgFileF1,'crossingF2');
+			imgChange('crossB2',sceneFolderName+crossImgFileB1,'crossingB2');
+			cross2close=true;
+		}
+	}
+}
+//Signals-----------------------------------------------------
+signal1flag="G";signal2flag="R";signal3flag="R";signal4flag="R";
+function signalChange(sigId,sigColor){
+	if(sigId=="1"&&sigColor!=signal1flag){
+		signal1which=sceneFolderName+signalFileNameHead+sigColor+".gif";
+		imgChange('sig1',signal1which,'signal1');signal1flag=sigColor;
+	}
+	if(sigId=="2"&&sigColor!=signal2flag){
+		signal2which=sceneFolderName+signalFileNameHead+sigColor+".gif";
+		imgChange('sig2',signal2which,'signal2');signal2flag=sigColor;
+	}
+	if(sigId=="3"&&sigColor!=signal3flag){
+		signal3which=sceneFolderName+signalFileNameHead+sigColor+".gif";
+		imgChange('sig3',signal3which,'signal3');signal3flag=sigColor;
+	}
+	if(sigId=="4"&&sigColor!=signal4flag){
+		signal4which=sceneFolderName+signalFileNameHead+sigColor+".gif";
+		imgChange('sig4',signal4which,'signal4');signal4flag=sigColor;
+	}
+}
+//Key----------------------------------------------------
+function kup(e){
+	displaychange(0);
+}
+function kprs(e){
+	if(ie){keyNum=event.keyCode};
+	if(nn4||nn6){keyNum=e.which};
+	if(keyNum==32){//---On/Off
+		if(runrunflag==true){
+			stopTrain();
+		}else{
+			startTrain();
+		}
+	}
+	if(keyNum==45){//(-)---Brake
+		notch--;if(notch<0){notch=0};
+		if(notch==6&&keyNotchType==0){notch=5};
+		gogoTrain(notch);
+	}
+	if((keyNum==82||keyNum==114)&&notch!=0){//(Rr)---Brake
+		notch--;if(notch<1){notch=1};
+		if(notch==6&&keyNotchType==0){notch=5};
+		gogoTrain(notch);
+	}
+	if(keyNum==70||keyNum==102||keyNum==43){//(Ff+)---Power
+		if(notch<5||doorCloseNow){
+			notch++;if(notch>7){notch=7};
+			gogoTrain(notch);
+		}else{
+			displaychange(12);
+		}
+	}
+	if(keyNum==69||keyNum==101){//(Ee)---Emergency
+		notch=0;
+		gogoTrain(notch);
+	}
+	if(keyNum==42){//(*)---前後
+		dirchange();
+	}
+	if(keyNum==84||keyNum==116){//(Tt)---前後
+		dirchange();
+	}
+	return false;
+}
+keyflag=false;
+function keyControl(){if(dhtmlOK){
+	if(!keyflag){
+		if(ie||nn6){
+			document.onkeypress=kprs;
+			document.onkeyup=kup;
+		}
+		if(nn4){
+			window.onkeypress=kprs;
+			window.onkeyup=kup;
+			window.captureEvents(Event.KEYPRESS|Event.KEYUP);
+		}
+		layerShow('keyOn');
+		keyflag=true;
+	}else{
+		if(ie||nn6){
+			document.onkeypress=null;
+			document.onkeyup=null;
+		}
+		if(nn4){
+			window.onkeypress=null;
+			window.onkeyup=null;
+			window.releaseEvents(Event.KEYPRESS|Event.KEYUP);
+		}
+		layerHide('keyOn');
+		keyflag=false;
+	}
+}}
+function keyGuideHide(){
+	if(!keyflag||runrunflag){layerHide('keyguide')}
+}
+//Null mouse down-------------------------------
+mdwnfalseobj=new Array('keikibanOn','mascon','sousa','keikibanOff','protector');
+mdwnfalselayers=new Array();
+function mousepreset(){
+	for(i=0;i<mdwnfalseobj.length;i++){
+		if(nn4){
+			mdwnfalselayers[i]=document.layers['tetsudou'].document.layers[mdwnfalseobj[i]];
+			mdwnfalselayers[i].captureEvents(Event.MOUSEDOWN);
+		}
+		if(ie){
+			mdwnfalselayers[i]=document.all(mdwnfalseobj[i]);
+			mdwnfalselayers[i].onmousemove=mmvout;
+		}
+		if(nn6){
+			mdwnfalselayers[i]=document.getElementById(mdwnfalseobj[i]);
+			mdwnfalselayers[i].onmousemove=mmvout;
+		}
+		mdwnfalselayers[i].onmousedown=mdwnout;
+	}
+}
+function mdwnout(e){self.focus();return false;}
+function mmvout(e){return false;}
+//Event---------------------------------------------
+window.onload=preset;
+window.onunload=stopTrain;
+//▲走行プログラムここまで。
+//--></script>
+
+
+<style type="text/css"><!--
+body{
+	background-image:url(manual/kitbg.gif);
+	color:#999999;
+	overflow-x:hidden;/* 横スクロール禁止 */
+}
+input{
+	border-style:solid;
+	border-width:1px;
+}
+--></style>
+<!--■↑このスタイルシート指定はマニュアルとの統一のために入れてある。実際に使用する際は変更すること-->
+
+
+</head>
+<body>
+
+
+<!--▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽▽
+▼鉄道走行オブジェクトここから-->
+<div id="tetsudou" style="position:absolute;left:0px;top:0px"><!--Start of Railway Layer-->
+<script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&loadingBlack){document.write(startBlackTag)}//--></script>
+<div id="now" style="position:absolute;left:20px;top:20px;visibility:hidden;width:600px;z-index:2">
+
+<font color="#dddddd">画像読込中。しばらくお待ち下さい。</font>
+<!--↑読込中表示を変えたい場合は、この行を書き直す-->
+
+</div>
+<div id="loading" style="position:absolute;left:0px;top:24px;visibility:hidden;width:10;height:4;clip:rect(0px,10px,4px,0px);layer-background-color:#ff0000;background-color:#ff0000;z-index:3"><br></div>
+<!--controler base-->
+<div id="panelback" style="position:absolute;left:0px;top:130px;visibility:hidden;width:1600;height:185;clip:rect(0px,1600px,185px,0px);z-index:4"><br></div>
+<!--background far-->
+<div id="chouenkei" style="position:absolute;left:0px;top:0px;visibility:hidden;z-index:5"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK){document.write(chouenkeiTag)}//--></script></div>
+<!--background mid far-->
+<div id="enkei" style="position:absolute;left:-200px;top:0px;visibility:hidden;z-index:6"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK){document.write(enkeiTag)}//--></script></div>
+<!--background mid-->
+<div id="chukei" style="position:absolute;left:-400px;top:0px;visibility:hidden;z-index:7"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK){document.write(chukeiTag)}//--></script></div>
+<!--background mid near-->
+<div id="chukinkei" style="position:absolute;left:-1000px;top:0px;visibility:hidden;z-index:8"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&nearBackgroundOK&&dhtmlOK){document.write(chukinkeiTag)}//--></script></div>
+<!--near object-->
+<div id="tracksideObj1" style="position:absolute;left:0px;top:0px;visibility:hidden;z-index:10"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&tracksideObj1OK&&dhtmlOK){document.write(tracksideObj1Tag)}//--></script></div>
+<div id="tracksideObj2" style="position:absolute;left:0px;top:0px;visibility:hidden;z-index:11"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&tracksideObj2OK&&dhtmlOK){document.write(tracksideObj2Tag)}//--></script></div>
+<!--pole-->
+<div id="hashira" style="position:absolute;left:-2000px;top:0px;visibility:hidden;z-index:25"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&electrified){document.write(hashiraTag)}//--></script></div>
+<!--crossB-->
+<div id="crossingB1" style="position:absolute;left:-6000px;top:0px;visibility:hidden;z-index:26"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&crossingOK){document.write(crossingB1Tag)}//--></script></div>
+<div id="crossingB2" style="position:absolute;left:2600px;top:0px;visibility:hidden;z-index:27"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&crossingOK){document.write(crossingB2Tag)}//--></script></div>
+<!--station oposite platform-->
+<div id="ekiOp" style="position:absolute;left:350px;top:0px;visibility:hidden;z-index:30"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&!islandPF){document.write(ekiBtag)}//--></script></div>
+<!--windowglass2-->
+<script language="JavaScript" type="text/javascript"><!--
+if((glassOK[2]||glassPngOK[2])&&anotherTrain){document.write(glass2Div)}//31//--></script>
+<!--another train-->
+<div id="densha2" style="position:absolute;left:400px;top:70px;visibility:hidden;z-index:32"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&anotherTrain&&dhtmlOK){document.write(train2Obj)};//--></script></div>
+<!--station island-->
+<div id="eki" style="position:absolute;left:350px;top:0px;visibility:hidden;z-index:35"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&islandPF){document.write(ekiBtag)}//--></script></div>
+<!--rail-->
+<div id="senro" style="position:absolute;left:-2000px;top:0px;visibility:hidden;z-index:36"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK){document.write(railTag)}//--></script></div>
+<!--tunnel-->
+<div id="tunnel" style="position:absolute;left:0px;top:0px;visibility:hidden;z-index:37"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&tunnelOK){document.write(tunnelTag)}//--></script></div>
+<!--wire-->
+<div id="kasen" style="position:absolute;left:-2000px;top:0px;visibility:hidden;z-index:38"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&!oldwire&&electrified){document.write(kasenTag)}//--></script></div>
+<!--windowglass1-->
+<script language="JavaScript" type="text/javascript"><!--
+if(glassOK[1]||glassPngOK[1]){document.write(glass1Div)}//41//--></script>
+<!--train-->
+<div id="densha" style="position:absolute;left:400px;top:70px;visibility:hidden;z-index:42"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK){document.write(trainObj)};//--></script></div>
+<div id="aero" style="position:absolute;left:400px;top:70px;visibility:hidden;z-index:43"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&airResistanceBrakeOK){document.write(trainObjAR)};//--></script></div>
+<!--poleS-->
+<div id="hashiraS" style="position:absolute;left:240px;top:0px;visibility:hidden;z-index:45"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&poleFOK&&electrified){document.write(hashiraSTag)}//--></script></div>
+<!--crossF-->
+<div id="crossingF1" style="position:absolute;left:-6000px;top:0px;visibility:hidden;z-index:46"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&crossingOK){document.write(crossingF1Tag)}//--></script></div>
+<div id="crossingF2" style="position:absolute;left:2600px;top:0px;visibility:hidden;z-index:47"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&crossingOK){document.write(crossingF2Tag)}//--></script></div>
+<!--signal-->
+<div id="signal1" style="position:absolute;left:0px;top:0px;visibility:hidden;z-index:50"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&signalOK){document.write(signalTag[1])}//--></script></div>
+<div id="signal2" style="position:absolute;left:0px;top:0px;visibility:hidden;z-index:51"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&signalOK){document.write(signalTag[2])}//--></script></div>
+<div id="signal3" style="position:absolute;left:0px;top:0px;visibility:hidden;z-index:52"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&signalOK){document.write(signalTag[3])}//--></script></div>
+<div id="signal4" style="position:absolute;left:0px;top:0px;visibility:hidden;z-index:53"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&signalOK){document.write(signalTag[4])}//--></script></div>
+<!--station gate-->
+<div id="ekisha" style="position:absolute;left:350px;top:0px;visibility:hidden;z-index:55"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK){document.write(ekiFtag)}//--></script></div>
+<!--bridge-->
+<div id="bridge" style="position:absolute;left:0px;top:0px;visibility:hidden;z-index:56"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&bridgeOK){document.write(bridgeTag)}//--></script></div>
+<!--stop position-->
+<div id="tomare" style="position:absolute;left:400px;top:0px;visibility:hidden;z-index:57"><img src="controlgif/dum.gif" WIDTH="52" HEIGHT="83" name="teimoku" id="teimoku"></div>
+<!--infomation form-->
+<div id="infos" style="position:absolute;left:20px;top:10px;visibility:hidden;z-index:60"><nobr>
+<form name="infobar" id="infobar" onSubmit="return false">
+<input name="total" id="total" type=text size=14 value="走行距離計">
+<input name="speedmeter" id="speedmeter" type=text size=10 value="速度計">
+<input name="gap" id="gap" type=text size=27 value="停車位置情報">
+<input name="record" id="record" type=text size=22 value="">
+</form></nobr></div>
+<!--protector-->
+<div id="protector" style="position:absolute;left:0px;top:0px;visibility:hidden;z-index:62"><img src="controlgif/dum.gif" WIDTH="1600" HEIGHT="280"></div>
+<div id="curtain" style="position:absolute;left:1600px;top:0px;visibility:hidden;width:1000;height:280;clip:rect(0px,1000px,280px,0px);layer-background-color:#000000;background-color:#000000;z-index:63"><br></div>
+<!--test area-->
+<script language="JavaScript" type="text/javascript"><!--
+if(testmode&&ie){document.write(areaXtag)}//64_65//--></script>
+<!--key-->
+<div id="keyguide" style="position:absolute;left:20px;top:46px;visibility:hidden;width:248;z-index:70"><img src="controlgif/dum.gif" WIDTH="248" HEIGHT="73" name="keyhaichi" id="keyhaichi"></div>
+<div id="keybtn" style="position:absolute;left:247px;top:225px;visibility:hidden;width:73;z-index:71"><a href="#" onClick="keyControl();return false" onMouseOver="displaychange(9);layerShow('keyguide')" onMouseOut="displaychange(0);keyGuideHide()"><img src="controlgif/dum.gif" WIDTH="73" HEIGHT="17" border=0 name="keynyuryoku" id="keynyuryoku"></a></div>
+<div id="keyOn" style="position:absolute;left:247px;top:225px;visibility:hidden;width:13px;z-index:72"><img src="controlgif/btn_light.gif" WIDTH="13" HEIGHT="12"></div>
+<!--control panel-->
+<div id="keikibanOn" style="position:absolute;left:360px;top:142px;visibility:hidden;z-index:75"><img src="controlgif/controlerM01_base.gif" WIDTH="144" HEIGHT="100"></div>
+<div id="doorInd" style="position:absolute;left:360px;top:142px;visibility:hidden;z-index:76"><script language="JavaScript" type="text/javascript"><!--
+if(!nn4&&dhtmlOK&&doorHandling[1]){document.write(doorIndTag)}//--></script></div>
+<div id="mascon" style="position:absolute;left:360px;top:142px;visibility:hidden;z-index:80"><img src="controlgif/controlerM01_bar.gif" WIDTH="81" HEIGHT="16"></div>
+<div id="sousa" style="position:absolute;left:390px;top:147px;width:48px;visibility:hidden;z-index:81"><table border=0 cellpadding=0 cellspacing=0>
+<tr><td><a href="#" onClick="return false" onMouseOver="gogoTrain(0)" onMouseOut="displaychange(0)"><img src="controlgif/dum.gif" WIDTH="52" HEIGHT="9" border=0></a></td></tr><!--emergent brake-->
+<tr><td><a href="#" onClick="return false" onMouseOver="gogoTrain(1)" onMouseOut="displaychange(0)"><img src="controlgif/dum.gif" WIDTH="52" HEIGHT="13" border=0></a></td></tr><!--brake 4-->
+<tr><td><a href="#" onClick="return false" onMouseOver="gogoTrain(2)" onMouseOut="displaychange(0)"><img src="controlgif/dum.gif" WIDTH="52" HEIGHT="10" border=0></a></td></tr><!--brake 3-->
+<tr><td><a href="#" onClick="return false" onMouseOver="gogoTrain(3)" onMouseOut="displaychange(0)"><img src="controlgif/dum.gif" WIDTH="52" HEIGHT="10" border=0></a></td></tr><!--brake 2-->
+<tr><td><a href="#" onClick="return false" onMouseOver="gogoTrain(4)" onMouseOut="displaychange(0)"><img src="controlgif/dum.gif" WIDTH="52" HEIGHT="10" border=0></a></td></tr><!--brake 1-->
+<tr><td><a href="#" onClick="return false" onMouseOver="gogoTrain(5)" onMouseOut="displaychange(0)"><img src="controlgif/dum.gif" WIDTH="52" HEIGHT="14" border=0></a></td></tr><!--inertia run-->
+<tr><td><a href="#" onClick="return false" onMouseOver="gogoTrain(6)" onMouseOut="displaychange(0)"><img src="controlgif/dum.gif" WIDTH="52" HEIGHT="10" border=0></a></td></tr><!--power 1-->
+<tr><td><a href="#" onClick="return false" onMouseOver="gogoTrain(7)" onMouseOut="displaychange(0)"><img src="controlgif/dum.gif" WIDTH="52" HEIGHT="12" border=0></a></td></tr><!--power 2-->
+</table></div>
+<div id="zengo" style="position:absolute;left:481px;top:151px;visibility:hidden;z-index:82"><a href="#" onClick="dirchange();return false"><img src="controlgif/controlerM01_ball.gif" WIDTH="15" HEIGHT="17" border=0></a></div>
+<div id="keikibanOff" style="position:absolute;left:339px;top:142px;visibility:hidden;z-index:85"><img src="controlgif/controlerM01_off.gif" WIDTH="212" HEIGHT="100"></div>
+<!--mode change-->
+<div id="shori" style="position:absolute;left:20px;top:225px;visibility:hidden;width:219;z-index:90"><table border=0 cellpadding=0 cellspacing=0><tr>
+<td><a href="#" onClick="modechange(0);return false" onMouseOver="displaychange(1)" onMouseOut="displaychange(0)"><img src="controlgif/btn_mode0.gif" WIDTH="85" HEIGHT="17" border=0></a></td>
+<td><a href="#" onClick="modechange(1);return false" onMouseOver="displaychange(2)" onMouseOut="displaychange(0)"><img src="controlgif/btn_mode1.gif" WIDTH="73" HEIGHT="17" border=0></a></td>
+<td><a href="#" onClick="modechange(2);return false" onMouseOver="displaychange(3)" onMouseOut="displaychange(0)"><img src="controlgif/btn_mode2.gif" WIDTH="61" HEIGHT="17" border=0></a></td>
+</tr></table></div>
+<div id="shoriOn" style="position:absolute;left:20px;top:225px;visibility:hidden;width:13px;z-index:91"><img src="controlgif/btn_light.gif" WIDTH="13" HEIGHT="12"></div>
+<!--clear-->
+<div id="shoukyo" style="position:absolute;left:247px;top:200px;visibility:hidden;width:73;z-index:92"><a href="#" onClick="clearGap();return false" onMouseOver="displaychange(7)" onMouseOut="displaychange(0)"><img src="controlgif/dum.gif" WIDTH="73" HEIGHT="17" border=0 name="kirokukesu" id="kirokukesu"></a></div>
+<!--go and stop-->
+<div id="programSwitch" style="position:absolute;left:516px;top:225px;visibility:hidden;width:85px;z-index:95"><a href="#" onClick="programOnOff();return false" onMouseOver="displaychange(8)" onMouseOut="displaychange(0)"><img src="controlgif/btn_start.gif" WIDTH="85" HEIGHT="17" border=0></a></div>
+<div id="programGo" style="position:absolute;left:516px;top:225px;visibility:hidden;width:13px;z-index:96"><img src="controlgif/btn_light.gif" WIDTH="13" HEIGHT="12"></div>
+<!--guide-->
+<div id="modedisplay" style="position:absolute;left:20px;top:252px;visibility:visible;width:800px;z-index:99"></div>
+</div><!--End of Railway Layer-->
+<script language="JavaScript" type="text/javascript"><!--
+if(zeroTopMargin&&dhtmlOK){sceneMoveY(0)}
+if(dhtmlOK){layerShow('now')}
+if(loadingIndicator&&dhtmlOK){layerShow('loading');loadingLight()}
+if(!dhtmlOK){document.write(noDhtml)}else if(textUnderTheRail||testmode){document.write(dumSpace)}
+if(testmode&&dhtmlOK){document.write(testform+testzone)}
+//--></script>
+<!--▲鉄道走行オブジェクトここまで
+△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△△-->
+
+
+<p>●ここに本文。</p>
+
+</body>
+</html>
